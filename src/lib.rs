@@ -34,6 +34,12 @@
 //! println!("{url}"); // => geo:48.858222,2.218778
 //! ```
 //!
+//! ```rust,ignore
+//! // Convert to JSON, requires `geojson` feature flag
+//! let json = serde_json::Value::from(paris);
+//! println!("{json}"); // => { "type": "Point", "coordinates": [48.858222,2.218778] }
+//! ```
+//!
 //! ## Formatting
 //!
 //! The [`fmt`] module provides functionality for formatting and parsing coordinates.
