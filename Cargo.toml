@@ -1,0 +1,46 @@
+[package]
+name = "lat-long"
+version = "0.1.0"
+edition = "2024"
+description = "Geographic latitude/longitude coordinate types with multiple numeric backends"
+license = "MIT OR Apache-2.0"
+keywords = ["geo", "latitude", "longitude", "coordinate", "geography"]
+categories = ["science", "data-structures", "no-std"]
+readme = "README.md"
+# Minimum Supported Rust Version
+rust-version = "1.90"
+
+[package.metadata.docs.rs]
+features = ["serde"]
+rustdoc-args = ["--generate-link-to-definition"]
+
+[package.metadata.playground]
+features = ["serde"]
+
+[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dev-dependencies.wasm-bindgen-test]
+version = "0.3"
+
+[features]
+#! The following features...
+
+default = ["std"]
+
+## This configuration only uses the `alloc` and `core` libraries, or `no_std`.
+alloc = []
+
+## The default configuration, it uses the `std` library and includes the `serde`, `urn`, and `geojson` features.
+std = ["alloc", "ordered-float/std", "serde_json/std", "urn"]
+
+## Serde support provides decoding of lat/long (and Coord) values as strings or as decimal values. 
+serde = ["serde_json/alloc", "ordered-float/serde", "url?/serde"]
+
+## GeoJSON support provides encoding of Coord values as GeoJSON coordinates. 
+geojson = ["serde_json/alloc"]
+
+urn = ["url"]
+
+[dependencies]
+document-features = "0.2"
+ordered-float = { version = "5.1", default-features = false }
+serde_json = { version = "1.0", default-features = false, optional = true }
+url = { version = "2.5", default-features = false, optional = true }
