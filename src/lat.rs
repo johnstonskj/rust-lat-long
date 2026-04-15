@@ -12,6 +12,9 @@ use core::{
 };
 use ordered_float::OrderedFloat;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 // ---------------------------------------------------------------------------
 // Public Types
 // ---------------------------------------------------------------------------
@@ -37,6 +40,7 @@ use ordered_float::OrderedFloat;
 /// assert!(equator.is_on_equator());
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Latitude(OrderedFloat<f64>);
 
 // ---------------------------------------------------------------------------

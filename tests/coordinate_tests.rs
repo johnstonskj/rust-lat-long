@@ -189,3 +189,24 @@ fn test_coord_to_url_string() {
     let parts: Vec<&str> = body.split(',').collect();
     assert_eq!(parts.len(), 2, "expected exactly two parts, got {url}");
 }
+
+#[cfg(feature = "serde")]
+mod serde {
+    use lat_long::{Angle, Coordinate, Latitude, Longitude};
+
+    #[test]
+    fn test_serialize_coordinate() {
+        let lat = Latitude::new(48, 51, 30.0).unwrap();
+        let lon = Longitude::new(2, 21, 8.0).unwrap();
+        let paris = Coordinate::new(lat, lon);
+
+        assert_eq!(
+            r##"{
+  "lat": 48.858333333333334,
+  "long": 2.352222222222222
+}"##
+            .to_string(),
+            serde_json::to_string_pretty(&paris).unwrap()
+        );
+    }
+}
