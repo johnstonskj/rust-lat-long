@@ -7,6 +7,14 @@ Simple types for representing latitude and longitude coordinates.
 [![crates.io](https://img.shields.io/crates/v/lat-long.svg)](https://crates.io/crates/lat-long)
 [![GitHub stars](https://img.shields.io/github/stars/johnstonskj/rust-lat-long.svg)](<https://github.com/johnstonskj/rust-lat-long/stargazers>)
 
+## Features
+
+* **std**; (default) include standard library.
+* **alloc**; for no-std usage.
+* **geojson**; support for serializing according to the GeoJSON specification.
+* **serde**; support for serializing `Latitude`, `Longitude`, and `Coordinate` types.
+* **urn**; create `Url` objects with the "geo" URN prefix.
+
 ## Examples
 
 Basic construction and display.

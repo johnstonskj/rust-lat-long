@@ -10,6 +10,9 @@ use core::{
     str::FromStr,
 };
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 #[cfg(feature = "geojson")]
 use crate::Angle;
 
@@ -32,6 +35,7 @@ use crate::Angle;
 /// println!("{london:#}"); // degrees–minutes–seconds
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Coordinate {
     lat: Latitude,   // φ
     long: Longitude, // λ
