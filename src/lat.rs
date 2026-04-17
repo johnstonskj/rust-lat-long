@@ -1,4 +1,5 @@
 //! This module provides the [`Latitude`] type, [`crate::lat!`] macro, and associated constants.
+//!
 
 use crate::{
     Angle, Error,
@@ -142,10 +143,13 @@ impl TryFrom<OrderedFloat<f64>> for Latitude {
     type Error = Error;
 
     fn try_from(value: OrderedFloat<f64>) -> Result<Self, Self::Error> {
-        if value.0 < -LATITUDE_LIMIT || value.0 > LATITUDE_LIMIT {
-            return Err(Error::InvalidAngle(value.into_inner(), LATITUDE_LIMIT));
+        if value.is_infinite() || value.is_nan() {
+            Err(Error::InvalidNumericValue(value.into()))
+        } else if value.0 < -LATITUDE_LIMIT || value.0 > LATITUDE_LIMIT {
+            Err(Error::InvalidAngle(value.into_inner(), LATITUDE_LIMIT))
+        } else {
+            Ok(Self(value))
         }
-        Ok(Self(value))
     }
 }
 

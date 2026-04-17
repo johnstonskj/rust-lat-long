@@ -25,6 +25,8 @@ pub enum Error {
     InvalidWhitespace(String),
     /// An improperly formatted numeric value.
     InvalidNumericFormat(String),
+    /// An improper numeric value.
+    InvalidNumericValue(f64),
     /// Unable to create a new Coordinate value.
     InvalidCoordinate,
     /// The URI scheme was not `geo:` as required by RFC 5870.
@@ -74,6 +76,7 @@ impl Display for Error {
             }
             #[cfg(feature = "url")]
             Error::InvalidUrnScheme => write!(f, "URI scheme must be `geo:`."),
+            Error::InvalidNumericValue(v) => write!(f, "Invalid floating point value, `{v}`"),
         }
     }
 }

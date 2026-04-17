@@ -557,7 +557,11 @@ fn try_decimal(s: &str) -> Result<OrderedFloat<f64>, Error> {
 
     let magnitude = int_val as f64 + frac_val;
     let signed = if neg { -magnitude } else { magnitude };
-    Ok(OrderedFloat(signed))
+    if signed.is_infinite() || signed.is_nan() {
+        Err(Error::InvalidNumericValue(signed))
+    } else {
+        Ok(OrderedFloat(signed))
+    }
 }
 
 // ---------------------------------------------------------------------------
