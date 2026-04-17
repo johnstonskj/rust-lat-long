@@ -3,6 +3,8 @@
 use crate::{
     Error, Latitude, Longitude,
     fmt::{FormatKind, FormatOptions, Formatter},
+    lat::EQUATOR,
+    long::INTERNATIONAL_REFERENCE_MERIDIAN,
     parse::{self, Parsed},
 };
 use core::{
@@ -61,16 +63,37 @@ pub const GEOJSON_POINT_TYPE: &str = "Point";
 // Public Macros
 // ---------------------------------------------------------------------------
 
+#[cfg(not(feature = "3d"))]
 #[macro_export]
 macro_rules! coord {
     ($lat:expr ; $lon:expr) => {
-        Coordinate::new($lat, $lon)
+        $crate::coord::Coordinate::new($lat, $lon)
+    };
+}
+
+#[cfg(feature = "3d")]
+#[macro_export]
+macro_rules! coord {
+    ($lat:expr ; $lon:expr) => {
+        $crate::coord::Coordinate::new($lat, $lon)
+    };
+    ($lat:expr ; $lon:expr ; $alt:expr) => {
+        $crate::alt::Coordinate3d::new_from($lat, $lon, $alt)
     };
 }
 
 // ---------------------------------------------------------------------------
 // Implementations
 // ---------------------------------------------------------------------------
+
+impl Default for Coordinate {
+    fn default() -> Self {
+        Self {
+            lat: EQUATOR,
+            long: INTERNATIONAL_REFERENCE_MERIDIAN,
+        }
+    }
+}
 
 impl From<(Latitude, Longitude)> for Coordinate {
     fn from(value: (Latitude, Longitude)) -> Self {

@@ -105,10 +105,13 @@ impl TryFrom<OrderedFloat<f64>> for Longitude {
     type Error = Error;
 
     fn try_from(value: OrderedFloat<f64>) -> Result<Self, Self::Error> {
-        if value.0 < -LONGITUDE_LIMIT || value.0 > LONGITUDE_LIMIT {
+        if value.is_infinite() || value.is_nan() {
+            Err(Error::InvalidNumericValue(value.into()))
+        } else if value.0 < -LONGITUDE_LIMIT || value.0 > LONGITUDE_LIMIT {
             return Err(Error::InvalidAngle(value.into_inner(), LONGITUDE_LIMIT));
+        } else {
+            Ok(Self(value))
         }
-        Ok(Self(value))
     }
 }
 

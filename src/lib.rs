@@ -68,6 +68,7 @@
 //! * [Latitude and longitude](https://en.wikipedia.org/wiki/Geographic_coordinate_system#Latitude_and_longitude)
 //! * [WGS 84](https://en.wikipedia.org/wiki/World_Geodetic_System)
 
+use ordered_float::OrderedFloat;
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 
@@ -226,6 +227,11 @@ pub mod parse;
 // Public Modules & Exports
 // ---------------------------------------------------------------------------
 
+#[cfg(feature = "3d")]
+pub mod alt;
+#[cfg(feature = "3d")]
+pub use alt::{Altitude, Coordinate3d};
+
 pub mod coord;
 pub use coord::Coordinate;
 pub mod error;
@@ -235,4 +241,3 @@ pub mod lat;
 pub use lat::Latitude;
 pub mod long;
 pub use long::Longitude;
-use ordered_float::OrderedFloat;
