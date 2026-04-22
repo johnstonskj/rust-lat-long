@@ -155,7 +155,7 @@ impl TryFrom<OrderedFloat<f64>> for Latitude {
 
 impl From<Latitude> for OrderedFloat<f64> {
     fn from(value: Latitude) -> Self {
-        value.0.into()
+        value.0
     }
 }
 
