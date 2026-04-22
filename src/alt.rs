@@ -4,7 +4,7 @@
 //!
 
 use crate::{
-    Angle, Coordinate, Error, Latitude, Longitude,
+    Coordinate, Error, Latitude, Longitude,
     fmt::{FormatOptions, Formatter},
 };
 use serde::{Deserialize, Serialize};
@@ -17,6 +17,8 @@ use uom::{
     si::{f64::Length, length},
 };
 
+#[cfg(feature = "geojson")]
+use crate::Angle;
 #[cfg(feature = "geojson")]
 use crate::coord::{GEOJSON_COORDINATES_FIELD, GEOJSON_POINT_TYPE, GEOJSON_TYPE_FIELD};
 
@@ -58,6 +60,7 @@ macro_rules! alt {
 // ------------------------------------------------------------------------------------------------
 
 /// An altitude, in meters, above or below sea level.
+#[allow(clippy::derive_ord_xor_partial_ord)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Deserialize, Serialize)]
 pub struct Altitude(Length);
 

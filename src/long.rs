@@ -108,7 +108,7 @@ impl TryFrom<OrderedFloat<f64>> for Longitude {
         if value.is_infinite() || value.is_nan() {
             Err(Error::InvalidNumericValue(value.into()))
         } else if value.0 < -LONGITUDE_LIMIT || value.0 > LONGITUDE_LIMIT {
-            return Err(Error::InvalidAngle(value.into_inner(), LONGITUDE_LIMIT));
+            Err(Error::InvalidAngle(value.into_inner(), LONGITUDE_LIMIT))
         } else {
             Ok(Self(value))
         }
@@ -117,7 +117,7 @@ impl TryFrom<OrderedFloat<f64>> for Longitude {
 
 impl From<Longitude> for OrderedFloat<f64> {
     fn from(value: Longitude) -> Self {
-        value.0.into()
+        value.0
     }
 }
 

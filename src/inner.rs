@@ -45,8 +45,7 @@ pub(crate) const fn to_decimal_degrees(degrees: i32, minutes: u32, seconds: f32)
     let fsecs = seconds as f64 / SECONDS_PER_DEGREE;
     let float = abs_degs + fmins + fsecs;
     // Restore the sign of the original degrees component.
-    let float = if degrees.is_negative() { -float } else { float };
-    float
+    if degrees.is_negative() { -float } else { float }
 }
 
 /// Decompose a decimal-degree float into (degrees, minutes, seconds).

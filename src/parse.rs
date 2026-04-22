@@ -185,12 +185,12 @@ fn parse_single(s: &str) -> Result<Value, Error> {
         return result;
     }
     if let Some(result) = try_signed_dms(s) {
-        return result.map(|f| Value::Unknown(f));
+        return result.map(Value::Unknown);
     }
     if let Some(result) = try_bare_dms(s) {
-        return result.map(|f| Value::Unknown(f));
+        return result.map(Value::Unknown);
     }
-    try_decimal(s).map(|f| Value::Unknown(f))
+    try_decimal(s).map(Value::Unknown)
 }
 
 /// Parse a comma-separated coordinate pair. `comma_pos` is the byte index of
