@@ -64,7 +64,7 @@ macro_rules! elv {
 /// An elevation, in meters, above or below an undefined reference level.
 /// 
 #[allow(clippy::derive_ord_xor_partial_ord)]
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Elevation(Length);
 
@@ -247,7 +247,7 @@ impl Elevation {
 }
 
 // ------------------------------------------------------------------------------------------------
-// Implementations ❯ Coordinate3d
+// Implementations ❯ CoordinateWithElevation
 // ------------------------------------------------------------------------------------------------
 
 impl Display for CoordinateWithElevation {
@@ -378,22 +378,22 @@ impl CoordinateWithElevation {
 }
 
 #[cfg(feature = "geojson")]
-impl From<Coordinate3d> for serde_json::Value {
+impl From<CoordinateWithElevation> for serde_json::Value {
     /// See [The GeoJSON Format](https://geojson.org/).
-    fn from(coord: Coordinate3d) -> Self {
+    fn from(coord: CoordinateWithElevation) -> Self {
         serde_json::json!({
             GEOJSON_TYPE_FIELD: GEOJSON_POINT_TYPE,
             GEOJSON_COORDINATES_FIELD: [
                 coord.point().latitude().as_float().0,
                 coord.point().longitude().as_float().0,
-                coord.altitude().value()
+                coord.elevation().value()
             ]
         })
     }
 }
 
 #[cfg(feature = "geojson")]
-impl TryFrom<serde_json::Value> for Coordinate3d {
+impl TryFrom<serde_json::Value> for CoordinateWithElevation {
     type Error = crate::Error;
 
     fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
@@ -418,6 +418,6 @@ impl TryFrom<serde_json::Value> for Coordinate3d {
         let lat = Latitude::try_from(lat_val)?;
         let lon = Longitude::try_from(lon_val)?;
         let alt = Elevation::try_from(alt_val)?;
-        Ok(Coordinate3d::new_from(lat, lon, alt))
+        Ok(CoordinateWithElevation::new_from(lat, lon, alt))
     }
 }
