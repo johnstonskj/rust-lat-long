@@ -7,7 +7,6 @@ use crate::{
     Coordinate, Error, Latitude, Longitude,
     fmt::{FormatOptions, Formatter},
 };
-use serde::{Deserialize, Serialize};
 use core::hash::Hash;
 use std::{
     fmt::{Display, Write},
