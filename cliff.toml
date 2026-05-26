@@ -9,6 +9,7 @@ See [conventional commits](https://www.conventionalcommits.org/) for commit guid
 
 body = """
 ---
+
 {% if version %}\
     {% if previous.version %}\
         ## Version [{{ version | trim_start_matches(pat="v") }}]($REPO/compare/{{ previous.version }}..{{ version }}) - {{ timestamp | date(format="%Y-%m-%d") }}
@@ -46,9 +47,8 @@ body = """
         {% for contributor in new_contributors %}\
           * @{{ contributor.username }}{% if contributor.pr_number %} made their first contribution in #{{ contributor.pr_number }}{%- endif %}\
         {%- endfor -%}\
-    {% endif %}\
+    {% endif %}
 {% endif %}
-
 """
 
 footer = """
