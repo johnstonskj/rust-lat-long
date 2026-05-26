@@ -87,8 +87,10 @@ pub trait Angle:
     + PartialOrd
     + Ord
     + Hash
+    + TryFrom<f64, Error = Error>
     + TryFrom<OrderedFloat<f64>, Error = Error>
     + Into<OrderedFloat<f64>>
+    + Into<f64>
 {
     const MIN: Self;
     const MAX: Self;
@@ -100,6 +102,17 @@ pub trait Angle:
 
     fn as_float(&self) -> OrderedFloat<f64> {
         (*self).into()
+    }
+
+    fn to_radians(&self) -> f64 {
+        self.as_float().0.to_radians()
+    }
+
+    fn from_radians(radians: f64) -> Result<Self, Error>
+    where
+        Self: Sized,
+    {
+        Self::try_from(OrderedFloat(radians.to_degrees()))
     }
 
     /// Returns `true` if the angle is exactly zero.
@@ -132,6 +145,20 @@ pub trait Angle:
         inner::to_degrees_minutes_seconds(self.as_float()).2
     }
 
+    fn abs(self) -> Self
+    where
+        Self: Sized,
+    {
+        Self::try_from(OrderedFloat(self.as_float().0.abs())).unwrap()
+    }
+
+    fn modulo_max(self) -> Self
+    where
+        Self: Sized,
+    {
+        Self::try_from(self.as_float() % Self::MAX.as_float()).unwrap()
+    }
+
     /// Checked absolute value. Computes self.abs(), returning None if self == MIN.
     fn checked_abs(self) -> Option<Self>
     where
@@ -140,7 +167,7 @@ pub trait Angle:
         if self == Self::MIN {
             None
         } else {
-            Some(Self::try_from(OrderedFloat(self.into().0.abs())).unwrap())
+            Some(Self::try_from(OrderedFloat(self.as_float().0.abs())).unwrap())
         }
     }
 
@@ -157,7 +184,7 @@ pub trait Angle:
             (self, true)
         } else {
             (
-                Self::try_from(OrderedFloat(self.into().0.abs())).unwrap(),
+                Self::try_from(OrderedFloat(self.as_float().0.abs())).unwrap(),
                 false,
             )
         }
@@ -171,7 +198,7 @@ pub trait Angle:
         if self == Self::MIN {
             Self::MAX
         } else {
-            Self::try_from(OrderedFloat(self.into().0.abs())).unwrap()
+            Self::try_from(OrderedFloat(self.as_float().abs())).unwrap()
         }
     }
 
@@ -183,7 +210,7 @@ pub trait Angle:
         if self == Self::MIN {
             panic!("attempt to take absolute value of the minimum value")
         } else {
-            Self::try_from(OrderedFloat(self.into().0.abs())).unwrap()
+            Self::try_from(OrderedFloat(self.as_float().0.abs())).unwrap()
         }
     }
 
@@ -196,7 +223,7 @@ pub trait Angle:
     where
         Self: Sized,
     {
-        Self::try_from(OrderedFloat(self.into().0.abs())).unwrap()
+        Self::try_from(OrderedFloat(self.as_float().0.abs())).unwrap()
     }
 
     /// Wrapping (modular) absolute value. Computes self.abs(), wrapping around at the boundary of the type.
@@ -211,7 +238,7 @@ pub trait Angle:
         if self == Self::MIN {
             Self::MIN
         } else {
-            Self::try_from(OrderedFloat(self.into().0.abs())).unwrap()
+            Self::try_from(OrderedFloat(self.as_float().0.abs())).unwrap()
         }
     }
 }
