@@ -1,6 +1,6 @@
 //!
-//! This module provides an [`Altitude`] type, [`crate::lat!`] macro, and a [`Coordinate3d`]
-//! structure which is a lat/long [`Coordinate`] with an altitude.
+//! This module provides an [`Elevation`] type, [`crate::elv!`] macro, and a [`CoordinateWithElevation`]
+//! structure which is a lat/long [`Coordinate`] with an associated elevation.
 //!
 
 use crate::{
@@ -8,6 +8,7 @@ use crate::{
     fmt::{FormatOptions, Formatter},
 };
 use serde::{Deserialize, Serialize};
+use core::hash::Hash;
 use std::{
     fmt::{Display, Write},
     str::FromStr,
@@ -26,72 +27,78 @@ use crate::coord::{GEOJSON_COORDINATES_FIELD, GEOJSON_POINT_TYPE, GEOJSON_TYPE_F
 // Public Macros
 // ------------------------------------------------------------------------------------------------
 
-/// Quick creation of [`Altitude`] values.
+/// Quick creation of [`Elevation`] values.
 ///
-/// * `alt!(10.0; cm)` create an altitude of 10 centimeters.
-/// * `alt!(10.0; m)` create an altitude of 10 meters.
-/// * `alt!(10.0; km)` create an altitude of 10 kilometers.
-/// * `alt!(10.0)` create an altitude of 10 meters.
+/// * `elv!(10.0; cm)` create an elevation of 10 centimeters.
+/// * `elv!(10.0; m)` create an elevation of 10 meters.
+/// * `elv!(10.0; km)` create an elevation of 10 kilometers.
+/// * `elv!(10.0)` create an elevation of 10 meters.
 ///
 /// # Examples
 ///
 /// ```rust
-/// use lat_long::alt;
+/// use lat_long::elv;
 ///
-/// assert_eq!("10 m".to_string(), alt!(10.0; m).to_string());
+/// assert_eq!("10 m".to_string(), elv!(10.0; m).to_string());
 /// ```
 #[macro_export]
-macro_rules! alt {
+macro_rules! elv {
     ($value:expr; cm) => {
-        $crate::alt::Altitude::centimeters($value)
+        $crate::erlevation::Elevation::centimeters($value)
     };
     ($value:expr; m) => {
-        $crate::alt::Altitude::meters($value)
+        $crate::elevation::Elevation::meters($value)
     };
     ($value:expr; km) => {
-        $crate::alt::Altitude::kilometers($value)
+        $crate::elevation::Elevation::kilometers($value)
     };
     ($value:expr) => {
-        $crate::alt::Altitude::meters($value)
+        $crate::elevation::Elevation::meters($value)
     };
 }
 // ------------------------------------------------------------------------------------------------
 // Public Types
 // ------------------------------------------------------------------------------------------------
 
-/// An altitude, in meters, above or below sea level.
+/// 
+/// An elevation, in meters, above or below an undefined reference level.
+/// 
 #[allow(clippy::derive_ord_xor_partial_ord)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Deserialize, Serialize)]
-pub struct Altitude(Length);
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+pub struct Elevation(Length);
 
-/// A three dimensional geographic coordinate expressed as a (latitude, longitude, altitude) triple.
+/// 
+/// A three dimensional geographic coordinate expressed as a (latitude, longitude, elevation) triple.
 ///
 /// # Examples
 ///
 /// ```rust
-/// use lat_long::{Altitude, Angle, Coordinate3d, Latitude, Longitude};
+/// use lat_long::{Elevation, Angle, CoordinateWithElevation, Latitude, Longitude};
 ///
 /// let lat = Latitude::try_from(47.6204).unwrap();
 /// let lon = Longitude::try_from(-122.3491).unwrap();
-/// let height = Altitude::meters(226.0);
-/// let top_of_seattle_space_needle = Coordinate3d::new_from(lat, lon, height);
+/// let height = Elevation::meters(226.0);
+/// let top_of_seattle_space_needle = CoordinateWithElevation::new_from(lat, lon, height);
 ///
 /// println!("{top_of_seattle_space_needle}");   // decimal degrees
 /// println!("{top_of_seattle_space_needle:#}"); // degrees–minutes–seconds
 /// ```
 ///
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
-pub struct Coordinate3d {
+pub struct CoordinateWithElevation {
     point: Coordinate,
-    altitude: Altitude,
+    elevation: Elevation,
 }
 
 // ------------------------------------------------------------------------------------------------
-// Implementations ❯ Altitude
+// Implementations ❯ Elevation
 // ------------------------------------------------------------------------------------------------
 
-impl Display for Altitude {
+const ELEVATION_ZERO: f64 = 0.0;
+
+impl Display for Elevation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if f.alternate() {
             match self.value() {
@@ -120,7 +127,7 @@ impl Display for Altitude {
     }
 }
 
-impl FromStr for Altitude {
+impl FromStr for Elevation {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -130,7 +137,7 @@ impl FromStr for Altitude {
     }
 }
 
-impl TryFrom<Length> for Altitude {
+impl TryFrom<Length> for Elevation {
     type Error = Error;
 
     fn try_from(value: Length) -> Result<Self, Self::Error> {
@@ -138,7 +145,7 @@ impl TryFrom<Length> for Altitude {
     }
 }
 
-impl TryFrom<f64> for Altitude {
+impl TryFrom<f64> for Elevation {
     type Error = Error;
 
     fn try_from(value: f64) -> Result<Self, Self::Error> {
@@ -150,39 +157,50 @@ impl TryFrom<f64> for Altitude {
     }
 }
 
-impl Eq for Altitude {}
+impl Eq for Elevation {}
 
-impl Ord for Altitude {
+impl Hash for Elevation {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.value.to_bits().hash(state);
+    }
+}
+
+impl Ord for Elevation {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.0.value.total_cmp(&other.0.value)
     }
 }
 
-impl From<Altitude> for Length {
-    fn from(value: Altitude) -> Self {
+impl From<Elevation> for Length {
+    fn from(value: Elevation) -> Self {
         value.0
     }
 }
 
-impl From<Altitude> for f64 {
-    fn from(value: Altitude) -> Self {
+impl From<Elevation> for f64 {
+    fn from(value: Elevation) -> Self {
         value.0.value
     }
 }
 
-impl AsRef<Length> for Altitude {
+impl AsRef<Length> for Elevation {
     fn as_ref(&self) -> &Length {
         &self.0
     }
 }
 
-impl Altitude {
-    /// Construct a new altitude value for sea level, i.e. `0 m`.
-    pub fn sea_level() -> Self {
-        Self::meters(0.0)
+impl Elevation {
+    ///
+    /// Zero is ambiguous as an elevation, since it could represent either sea level, or the ground level
+    /// at the location of interest, or a Geodetic [vertical datum](https://en.wikipedia.org/wiki/Vertical_datum).
+    ///
+    pub fn zero() -> Self {
+        Self(Length::new::<length::meter>(ELEVATION_ZERO))
     }
 
-    /// Construct an altitude in centimeters.
+    /// 
+    /// Construct an elevation in centimeters.
+    /// 
     pub fn centimeters(value: f64) -> Self {
         assert!(
             value.is_finite() && !value.is_nan(),
@@ -191,7 +209,9 @@ impl Altitude {
         Self(Length::new::<length::centimeter>(value))
     }
 
-    /// Construct an altitude in meters.
+    /// 
+    /// Construct an elevation in meters.
+    /// 
     pub fn meters(value: f64) -> Self {
         assert!(
             value.is_finite() && !value.is_nan(),
@@ -200,7 +220,9 @@ impl Altitude {
         Self(Length::new::<length::meter>(value))
     }
 
-    /// Construct an altitude in kilometers.
+    /// 
+    /// Construct an elevation in kilometers.
+    /// 
     pub fn kilometers(value: f64) -> Self {
         assert!(
             value.is_finite() && !value.is_nan(),
@@ -209,8 +231,18 @@ impl Altitude {
         Self(Length::new::<length::kilometer>(value))
     }
 
+    ///
+    /// Returns the elevation value in meters as an `f64`.
+    /// 
     pub fn value(&self) -> f64 {
         self.0.value
+    }
+
+    /// 
+    /// Returns `true` if this elevation is exactly zero.
+    /// 
+    pub fn is_zero(&self) -> bool {
+        self.0.value == ELEVATION_ZERO
     }
 }
 
@@ -218,7 +250,7 @@ impl Altitude {
 // Implementations ❯ Coordinate3d
 // ------------------------------------------------------------------------------------------------
 
-impl Display for Coordinate3d {
+impl Display for CoordinateWithElevation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let format = if f.alternate() {
             FormatOptions::dms()
@@ -229,45 +261,62 @@ impl Display for Coordinate3d {
     }
 }
 
-impl Formatter for Coordinate3d {
+impl Formatter for CoordinateWithElevation {
     fn format<W: Write>(&self, f: &mut W, options: &FormatOptions) -> std::fmt::Result {
         self.point.format(f, options)?;
-        write!(f, ", {}", self.altitude)
+        write!(f, ", {}", self.elevation)
     }
 }
 
-impl Coordinate3d {
-    /// Construct a new 3d coordinate from a 2d point and an altitude.
+impl FromStr for CoordinateWithElevation {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Some((coordinate, elevation)) = s.rsplit_once(',') {
+            Ok(Self::new(
+                Coordinate::from_str(coordinate.trim())?,
+                Elevation::from_str(elevation.trim())?,
+            ))
+        } else {
+            Err(Error::InvalidCoordinate)
+        }
+    }
+}
+
+impl CoordinateWithElevation {
+    /// 
+    /// Construct a new 3d coordinate from a 2d point and an elevation.
+    /// 
     #[must_use]
-    pub const fn new(point: Coordinate, altitude: Altitude) -> Self {
-        Self { point, altitude }
+    pub const fn new(point: Coordinate, elevation: Elevation) -> Self {
+        Self { point, elevation }
     }
 
     /// Construct a new 3d coordinate from a 2d point, expressed as latitude and longitude
-    /// values, and an altitude.
+    /// values, and an elevation.
     #[must_use]
-    pub const fn new_from(lat: Latitude, long: Longitude, altitude: Altitude) -> Self {
-        Self::new(Coordinate::new(lat, long), altitude)
+    pub const fn new_from(lat: Latitude, long: Longitude, elevation: Elevation) -> Self {
+        Self::new(Coordinate::new(lat, long), elevation)
     }
 
-    /// Return a new `Coordinate3d` with the point component replaced.
+    /// Return a new 3d coordinate with the point component replaced.
     #[must_use]
     pub const fn with_point(mut self, point: Coordinate) -> Self {
         self.point = point;
         self
     }
 
-    /// Return a new `Coordinate3d` with the point component replaced by a new 2d coordinate.
+    /// Return a new 3d coordinate with the point component replaced by a new 2d coordinate.
     #[must_use]
     pub const fn with_new_point(mut self, lat: Latitude, long: Longitude) -> Self {
         self.point = Coordinate::new(lat, long);
         self
     }
 
-    /// Return a new `Coordinate3d` with the altitude component replaced.
+    /// Return a new `CoordinateWithElevation` with the elevation component replaced.
     #[must_use]
-    pub const fn with_altitude(mut self, altitude: Altitude) -> Self {
-        self.altitude = altitude;
+    pub const fn with_elevation(mut self, elevation: Elevation) -> Self {
+        self.elevation = elevation;
         self
     }
 
@@ -277,10 +326,10 @@ impl Coordinate3d {
         self.point
     }
 
-    /// Returns the altitude component of this 3d coordinate.
+    /// Returns the elevation component of this 3d coordinate.
     #[must_use]
-    pub const fn altitude(&self) -> Altitude {
-        self.altitude
+    pub const fn elevation(&self) -> Elevation {
+        self.elevation
     }
 
     /// Returns `true` if this coordinate lies on the equator.
@@ -323,8 +372,8 @@ impl Coordinate3d {
 
     /// Returns `true` if this coordinate lies on the equator.
     #[must_use]
-    pub fn is_at_sea_level(&self) -> bool {
-        self.altitude.value() == 0.0
+    pub fn is_zero_elevation(&self) -> bool {
+        self.elevation.is_zero()
     }
 }
 
@@ -368,7 +417,7 @@ impl TryFrom<serde_json::Value> for Coordinate3d {
             .ok_or(crate::Error::InvalidNumericFormat(coords[2].to_string()))?;
         let lat = Latitude::try_from(lat_val)?;
         let lon = Longitude::try_from(lon_val)?;
-        let alt = Altitude::try_from(alt_val)?;
+        let alt = Elevation::try_from(alt_val)?;
         Ok(Coordinate3d::new_from(lat, lon, alt))
     }
 }

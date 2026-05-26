@@ -66,7 +66,7 @@ pub const GEOJSON_POINT_TYPE: &str = "Point";
 // Public Macros
 // ---------------------------------------------------------------------------
 
-#[cfg(not(feature = "3d"))]
+#[cfg(not(feature = "elevation"))]
 #[macro_export]
 macro_rules! coord {
     ($lat:expr ; $lon:expr) => {
@@ -74,14 +74,14 @@ macro_rules! coord {
     };
 }
 
-#[cfg(feature = "3d")]
+#[cfg(feature = "elevation")]
 #[macro_export]
 macro_rules! coord {
     ($lat:expr ; $lon:expr) => {
         $crate::coord::Coordinate::new($lat, $lon)
     };
     ($lat:expr ; $lon:expr ; $alt:expr) => {
-        $crate::alt::Coordinate3d::new_from($lat, $lon, $alt)
+        $crate::elevation::Coordinate::new_from($lat, $lon, $alt)
     };
 }
 
@@ -187,6 +187,12 @@ impl Coordinate {
     pub const fn with_longitude(mut self, long: Longitude) -> Self {
         self.long = long;
         self
+    }
+
+    #[cfg(feature = "elevation")]
+    #[must_use]
+    pub const fn with_elevation(&self, elevation: Elevation) -> CoordinateWithElevation {
+        CoordinateWithElevation::new(*self, elevation)
     }
 
     /// Returns the latitude component of this coordinate.

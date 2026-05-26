@@ -29,7 +29,7 @@ default = ["std"]
 alloc = []
 
 ## The default configuration, it uses the `std` library and includes the `serde`, `urn`, and `geojson` features.
-std = ["alloc", "ordered-float/std", "serde/std", "serde_json/std", "3d", "urn"]
+std = ["alloc", "ordered-float/std", "serde/std", "serde_json/std", "elevation", "urn"]
 
 ## Serde support provides decoding of lat/long (and Coord) values as strings or as decimal values. 
 serde = ["serde_json/alloc", "ordered-float/serde", "url?/serde"]
@@ -41,7 +41,7 @@ geojson = ["serde_json/alloc"]
 urn = ["url"]
 
 # Add support for altitude.
-3d = ["uom"]
+elevation = ["uom"]
 
 [dependencies]
 document-features = "0.2"

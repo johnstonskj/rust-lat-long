@@ -11,6 +11,7 @@ Simple types for representing latitude and longitude coordinates.
 
 * **std**; (default) include standard library.
 * **alloc**; for no-std usage.
+* **elevation**; adds the `Elevation` and `CoordinateWithElevation` types.
 * **geojson**; support for serializing according to the GeoJSON specification.
 * **serde**; support for serializing `Latitude`, `Longitude`, and `Coordinate` types.
 * **urn**; create `Url` objects with the "geo" URN prefix.
