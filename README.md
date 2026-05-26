@@ -29,6 +29,7 @@ let paris = Coordinate::new(lat, lon);
 
 // Decimal-degree display (default)
 println!("{paris}");   // => 48.858222, 2.218778
+
 // Degrees–minutes–seconds display (alternate flag)
 println!("{paris:#}"); // => 48° 51' 29.6" N, 2° 21' 7.6" E
 ```
@@ -43,20 +44,41 @@ if let Ok(Parsed::Coordinate(london)) = parse::parse_str("51.522, -0.127") {
 }
 ```
 
-Construct URL (URN) from coordinate.
+### Feature `elevation`
+
+Construct a 3D coordinate, point with elevation, with a height above sea level.
 
 ```rust
-// Convert to URL, requires `url` feature flag
-let url = url::Url::from(paris);
-println!("{url}"); // => geo:48.858222,2.218778
+use lat_long::{Elevation, Angle, CoordinateWithElevation, Latitude, Longitude};
+
+let lat = Latitude::try_from(47.6204).unwrap();
+let lon = Longitude::try_from(-122.3491).unwrap();
+let height = Elevation::meters(226.0);
+let top_of_seattle_space_needle = CoordinateWithElevation::new_from(lat, lon, height);
+
+println!("{top_of_seattle_space_needle}");   // decimal degrees
+println!("{top_of_seattle_space_needle:#}"); // degrees–minutes–seconds
 ```
 
-Construcxt a JSON value according to the GeoJSON spec.
+### Feature `geojson`
+
+Construct a JSON value according to the GeoJSON spec.
 
 ```rust
 // Convert to JSON, requires `geojson` feature flag
 let json = serde_json::Value::from(paris);
 println!("{json}"); // => { "type": "Point", "coordinates": [48.858222,2.218778] }
+```
+
+### Feature `urn`
+
+Construct URL (URN) from coordinate.
+
+```rust
+// Convert to URL, requires `urn` feature flag
+let url = url::Url::from(paris);
+
+println!("{url}"); // => geo:48.858222,2.218778
 ```
 
 ## License(s)
