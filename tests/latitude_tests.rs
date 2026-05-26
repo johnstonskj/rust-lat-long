@@ -1,7 +1,7 @@
 use lat_long::{
     Angle, Error, Latitude,
     fmt::{FormatOptions, Formatter},
-    lat::{
+    latitude::{
         ANTARCTIC_CIRCLE, ARCTIC_CIRCLE, EQUATOR, NORTH_POLE, SOUTH_POLE, TROPIC_OF_CANCER,
         TROPIC_OF_CAPRICORN,
     },

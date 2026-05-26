@@ -1,7 +1,7 @@
 use lat_long::{
     Angle, Error, Longitude,
     fmt::{FormatOptions, Formatter},
-    long::{ANTI_MERIDIAN, INTERNATIONAL_REFERENCE_MERIDIAN},
+    longitude::{ANTI_MERIDIAN, INTERNATIONAL_REFERENCE_MERIDIAN},
 };
 
 // --- Longitude construction ---

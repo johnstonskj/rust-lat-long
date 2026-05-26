@@ -227,17 +227,17 @@ pub mod parse;
 // Public Modules & Exports
 // ---------------------------------------------------------------------------
 
-#[cfg(feature = "3d")]
-pub mod alt;
-#[cfg(feature = "3d")]
-pub use alt::{Altitude, Coordinate3d};
+#[cfg(feature = "elevation")]
+pub mod elevation;
+#[cfg(feature = "elevation")]
+pub use elevation::{CoordinateWithElevation, Elevation};
 
 pub mod coord;
 pub use coord::Coordinate;
 pub mod error;
 pub use error::Error;
 pub mod fmt;
-pub mod lat;
-pub use lat::Latitude;
-pub mod long;
-pub use long::Longitude;
+pub mod latitude;
+pub use latitude::Latitude;
+pub mod longitude;
+pub use longitude::Longitude;

@@ -1,14 +1,17 @@
 //! This module provides the [`Coordinate`] type, [`crate::coord!`] macro, and associated constants.
 
+#[cfg(feature = "elevation")]
+use crate::{Elevation, elevation::CoordinateWithElevation};
 use crate::{
     Error, Latitude, Longitude,
     fmt::{FormatKind, FormatOptions, Formatter},
-    lat::EQUATOR,
-    long::INTERNATIONAL_REFERENCE_MERIDIAN,
+    latitude::EQUATOR,
+    longitude::INTERNATIONAL_REFERENCE_MERIDIAN,
     parse::{self, Parsed},
 };
 use core::{
     fmt::{Debug, Display, Write},
+    hash::Hash,
     str::FromStr,
 };
 
