@@ -43,7 +43,7 @@ use crate::coord::{GEOJSON_COORDINATES_FIELD, GEOJSON_POINT_TYPE, GEOJSON_TYPE_F
 #[macro_export]
 macro_rules! elv {
     ($value:expr; cm) => {
-        $crate::erlevation::Elevation::centimeters($value)
+        $crate::elevation::Elevation::centimeters($value)
     };
     ($value:expr; m) => {
         $crate::elevation::Elevation::meters($value)
