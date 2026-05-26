@@ -22,6 +22,9 @@ use crate::Angle;
 #[cfg(feature = "geojson")]
 use crate::coord::{GEOJSON_COORDINATES_FIELD, GEOJSON_POINT_TYPE, GEOJSON_TYPE_FIELD};
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 // ------------------------------------------------------------------------------------------------
 // Public Macros
 // ------------------------------------------------------------------------------------------------
