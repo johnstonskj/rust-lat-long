@@ -1,6 +1,6 @@
 [package]
 name = "lat-long"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2024"
 description = "Geographic latitude/longitude coordinate types with multiple numeric backends"
 repository = "https://github.com/rust-geo/lat-long"
