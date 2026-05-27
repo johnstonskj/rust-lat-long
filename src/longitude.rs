@@ -195,4 +195,10 @@ impl Longitude {
     pub fn is_eastern(&self) -> bool {
         self.is_nonzero_positive()
     }
+    pub fn utm_zone(&self) -> u8 {
+        // UTM zones are 6° wide, numbered 1–60 starting at 180°W.
+        // The formula below maps the range (−180, 180] to (0, 60], with 0 and 60 both representing the same zone.
+        let zone = ((self.0 + LONGITUDE_LIMIT) / 6.0).ceil() as u8;
+        if zone == 0 { 60 } else { zone }
+    }
 }

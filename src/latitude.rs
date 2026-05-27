@@ -15,6 +15,7 @@ use ordered_float::OrderedFloat;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use uom::ConversionFactor;
 
 // ---------------------------------------------------------------------------
 // Public Types
@@ -281,5 +282,36 @@ impl Latitude {
     #[must_use]
     pub fn is_polar(&self) -> bool {
         self.is_arctic() || self.is_antarctic()
+    }
+
+    pub fn utm_band(&self, westing: bool) -> char {
+        let latitude = self.0.value();
+        const BAND_WIDTH_DEGREES: f64 = 8.0;
+        const BANDS: &[char] = &[
+            'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'U',
+            'V', 'W', 'X',
+        ];
+        match latitude {
+            -90.0..-80.0 => {
+                if westing {
+                    'A'
+                } else {
+                    'B'
+                }
+            }
+            80.0..84.0 => 'X',
+            84.0..=90.0 => {
+                if westing {
+                    'Y'
+                } else {
+                    'Z'
+                }
+            }
+            _ => {
+                let index =
+                    (((latitude + LATITUDE_LIMIT) / BAND_WIDTH_DEGREES) as f64).floor() as usize;
+                BANDS[index]
+            }
+        }
     }
 }
