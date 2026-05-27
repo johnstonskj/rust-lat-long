@@ -5,6 +5,7 @@ Simple types for representing latitude and longitude coordinates.
 [![Apache-2.0 License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![MIT License](https://img.shields.io/badge/license-mit-118811.svg)](https://opensource.org/license/mit)
 [![crates.io](https://img.shields.io/crates/v/lat-long.svg)](https://crates.io/crates/lat-long)
+[![docs.rs](https://docs.rs/lat-long/badge.svg)](https://docs.rs/lat-long)
 [![GitHub stars](https://img.shields.io/github/stars/johnstonskj/rust-lat-long.svg)](<https://github.com/johnstonskj/rust-lat-long/stargazers>)
 
 ## Features
