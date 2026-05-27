@@ -217,7 +217,7 @@ fn bare_dms_negative() {
 #[test]
 fn bare_dms_err_no_sign() {
     // Bare format requires a leading +/-.
-    assert!(matches!(parse::parse_str("048:51:29.600000"), Err(_)));
+    assert!(parse::parse_str("048:51:29.600000").is_err());
 }
 
 #[test]
@@ -511,4 +511,434 @@ fn from_str_coordinate_err_not_a_pair() {
     // A single-angle string → Parsed::Angle → FromStr for Coordinate rejects it.
     let result: Result<Coordinate, _> = "48.858222".parse();
     assert!(result.is_err());
+}
+
+// ---------------------------------------------------------------------------
+// Helpers for value-level assertions (not just discriminant matching)
+// ---------------------------------------------------------------------------
+
+fn unwrap_unknown(r: Parsed) -> f64 {
+    match r {
+        Parsed::Angle(Value::Unknown(v)) => v.into_inner(),
+        other => panic!("expected Parsed::Angle(Unknown), got {other:?}"),
+    }
+}
+
+fn unwrap_coordinate(r: Parsed) -> Coordinate {
+    match r {
+        Parsed::Coordinate(c) => c,
+        other => panic!("expected Parsed::Coordinate, got {other:?}"),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Decimal — additional malformed-input coverage
+// ---------------------------------------------------------------------------
+
+#[test]
+fn decimal_negative_value_preserved() {
+    // Regression: the negative sign must survive the parse — `-73.9` is *not* `+73.9`.
+    let v = unwrap_unknown(parse::parse_str("-73.9").unwrap());
+    assert!(v < 0.0, "expected negative value, got {v}");
+    assert!((v - -73.9).abs() < 1e-9);
+}
+
+#[test]
+fn decimal_positive_value_preserved() {
+    let v = unwrap_unknown(parse::parse_str("48.5").unwrap());
+    assert!((v - 48.5).abs() < 1e-9);
+}
+
+#[test]
+fn decimal_explicit_plus_value_preserved() {
+    let v = unwrap_unknown(parse::parse_str("+48.5").unwrap());
+    assert!((v - 48.5).abs() < 1e-9);
+}
+
+#[test]
+fn decimal_err_multiple_dots() {
+    assert!(matches!(
+        parse::parse_str("48.5.0"),
+        Err(Error::InvalidNumericFormat(_))
+    ));
+}
+
+#[test]
+fn decimal_err_empty_integer_part() {
+    // ".5" has no integer digits.
+    assert!(matches!(
+        parse::parse_str(".5"),
+        Err(Error::InvalidNumericFormat(_))
+    ));
+}
+
+#[test]
+fn decimal_err_empty_fraction_part() {
+    // "48." has a dot but no fractional digits.
+    assert!(matches!(
+        parse::parse_str("48."),
+        Err(Error::InvalidNumericFormat(_))
+    ));
+}
+
+#[test]
+fn decimal_err_lone_sign() {
+    assert!(parse::parse_str("+").is_err());
+    assert!(parse::parse_str("-").is_err());
+}
+
+#[test]
+fn decimal_err_lone_dot() {
+    assert!(matches!(
+        parse::parse_str("."),
+        Err(Error::InvalidNumericFormat(_))
+    ));
+}
+
+#[test]
+fn decimal_err_non_digit_in_integer() {
+    assert!(matches!(
+        parse::parse_str("4a.5"),
+        Err(Error::InvalidNumericFormat(_))
+    ));
+}
+
+#[test]
+fn decimal_err_non_digit_in_fraction() {
+    assert!(matches!(
+        parse::parse_str("48.5a"),
+        Err(Error::InvalidNumericFormat(_))
+    ));
+}
+
+// ---------------------------------------------------------------------------
+// Labeled decimal — happy paths
+//
+// Per the documented behavior table, labeled decimals return `Value::Unknown`
+// (the direction letter is applied to the *sign*, not to the kind). Only
+// labeled DMS produces `Value::Latitude` / `Value::Longitude`.
+// ---------------------------------------------------------------------------
+
+#[test]
+fn labeled_decimal_north_no_fraction() {
+    let v = unwrap_unknown(parse::parse_str("48N").unwrap());
+    assert!((v - 48.0).abs() < 1e-9);
+}
+
+#[test]
+fn labeled_decimal_south_with_fraction() {
+    // S flips the sign.
+    let v = unwrap_unknown(parse::parse_str("33.86S").unwrap());
+    assert!((v - -33.86).abs() < 1e-9);
+}
+
+#[test]
+fn labeled_decimal_east_no_fraction() {
+    let v = unwrap_unknown(parse::parse_str("73E").unwrap());
+    assert!((v - 73.0).abs() < 1e-9);
+}
+
+#[test]
+fn labeled_decimal_west_with_fraction() {
+    // W flips the sign.
+    let v = unwrap_unknown(parse::parse_str("73.98W").unwrap());
+    assert!((v - -73.98).abs() < 1e-9);
+}
+
+// ---------------------------------------------------------------------------
+// Labeled decimal — error paths
+// ---------------------------------------------------------------------------
+
+#[test]
+fn labeled_decimal_err_sign_and_direction_n() {
+    // Sign and direction together are contradictory.
+    assert!(matches!(
+        parse::parse_str("-48.5N"),
+        Err(Error::InvalidNumericFormat(_))
+    ));
+}
+
+#[test]
+fn labeled_decimal_err_sign_and_direction_e() {
+    assert!(matches!(
+        parse::parse_str("+73.9E"),
+        Err(Error::InvalidNumericFormat(_))
+    ));
+}
+
+#[test]
+fn labeled_decimal_err_sign_and_direction_w() {
+    assert!(matches!(
+        parse::parse_str("-73.9W"),
+        Err(Error::InvalidNumericFormat(_))
+    ));
+}
+
+// ---------------------------------------------------------------------------
+// Signed DMS — additional coverage
+// ---------------------------------------------------------------------------
+
+#[test]
+fn signed_dms_explicit_plus() {
+    let r = parse::parse_str("+48° 51′ 29.6″").unwrap();
+    assert!(is_unknown(&r));
+}
+
+#[test]
+fn signed_dms_err_whitespace_after_sign() {
+    assert!(matches!(
+        parse::parse_str("- 48° 51′ 29.6″"),
+        Err(Error::InvalidWhitespace(_))
+    ));
+}
+
+#[test]
+fn signed_dms_err_whitespace_before_degree_symbol() {
+    assert!(matches!(
+        parse::parse_str("48 ° 51′ 29.6″"),
+        Err(Error::InvalidWhitespace(_))
+    ));
+}
+
+#[test]
+fn signed_dms_err_whitespace_before_minute_symbol() {
+    assert!(matches!(
+        parse::parse_str("48° 51 ′ 29.6″"),
+        Err(Error::InvalidWhitespace(_))
+    ));
+}
+
+#[test]
+fn signed_dms_err_whitespace_before_second_symbol() {
+    assert!(matches!(
+        parse::parse_str("48° 51′ 29.6 ″"),
+        Err(Error::InvalidWhitespace(_))
+    ));
+}
+
+#[test]
+fn signed_dms_err_seconds_without_fraction() {
+    // `parse_seconds` requires a `.` in the seconds component.
+    assert!(parse::parse_str("48° 51′ 29″").is_err());
+}
+
+#[test]
+fn signed_dms_err_too_many_degree_digits() {
+    assert!(matches!(
+        parse::parse_str("1234° 0′ 0.0″"),
+        Err(Error::InvalidNumericFormat(_))
+    ));
+}
+
+// ---------------------------------------------------------------------------
+// Labeled DMS — additional coverage (boundaries and range errors)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn labeled_dms_boundary_90_north() {
+    let r = parse::parse_str("90° 0′ 0.0″ N").unwrap();
+    assert!(is_latitude_value(&r));
+}
+
+#[test]
+fn labeled_dms_boundary_180_east() {
+    let r = parse::parse_str("180° 0′ 0.0″ E").unwrap();
+    assert!(is_longitude_value(&r));
+}
+
+#[test]
+fn labeled_dms_err_lat_degrees_out_of_range() {
+    // 91° N exceeds the 90° latitude limit.
+    assert!(matches!(
+        parse::parse_str("91° 0′ 0.0″ N"),
+        Err(Error::InvalidLatitudeDegrees(_)) | Err(Error::InvalidAngle(_, _))
+    ));
+}
+
+#[test]
+fn labeled_dms_err_lon_degrees_out_of_range() {
+    // 181° E exceeds the 180° longitude limit.
+    assert!(matches!(
+        parse::parse_str("181° 0′ 0.0″ E"),
+        Err(Error::InvalidLongitudeDegrees(_)) | Err(Error::InvalidAngle(_, _))
+    ));
+}
+
+#[test]
+fn labeled_dms_err_invalid_minutes() {
+    assert!(matches!(
+        parse::parse_str("48° 60′ 0.0″ N"),
+        Err(Error::InvalidMinutes(60))
+    ));
+}
+
+#[test]
+fn labeled_dms_err_invalid_seconds() {
+    assert!(matches!(
+        parse::parse_str("48° 0′ 60.0″ N"),
+        Err(Error::InvalidSeconds(_))
+    ));
+}
+
+#[test]
+fn labeled_dms_err_whitespace_before_direction_is_optional() {
+    // No whitespace between ″ and direction is also fine.
+    let r = parse::parse_str("48° 51′ 29.6″N").unwrap();
+    assert!(is_latitude_value(&r));
+}
+
+#[test]
+fn labeled_dms_err_extra_chars_after_direction() {
+    assert!(parse::parse_str("48° 51′ 29.6″ NX").is_err());
+}
+
+// ---------------------------------------------------------------------------
+// Bare DMS — additional coverage
+// ---------------------------------------------------------------------------
+
+#[test]
+fn bare_dms_err_too_few_seconds_fraction_digits() {
+    // Bare seconds require ≥4 fractional digits.
+    assert!(matches!(
+        parse::parse_str("+048:51:29.600"),
+        Err(Error::InvalidNumericFormat(_))
+    ));
+}
+
+#[test]
+fn bare_dms_err_seconds_missing_dot() {
+    // Bare format demands a fractional seconds component.
+    assert!(parse::parse_str("+048:51:29").is_err());
+}
+
+#[test]
+fn bare_dms_err_seconds_wrong_int_width() {
+    // Seconds integer part must be exactly 2 digits before the dot.
+    assert!(matches!(
+        parse::parse_str("+048:51:2.60000"),
+        Err(Error::InvalidNumericFormat(_))
+    ));
+}
+
+#[test]
+fn bare_dms_err_non_digit_in_degrees() {
+    assert!(matches!(
+        parse::parse_str("+0a8:51:29.6000"),
+        Err(Error::InvalidNumericFormat(_))
+    ));
+}
+
+#[test]
+fn bare_dms_negative_value_preserved() {
+    let v = unwrap_unknown(parse::parse_str("-073:00:00.0000").unwrap());
+    assert!((v - -73.0).abs() < 1e-9);
+}
+
+// ---------------------------------------------------------------------------
+// Coordinate pairs — content assertions (not just discriminant matching)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn coord_decimal_values_correct() {
+    let coord = unwrap_coordinate(parse::parse_str("48.858222, -73.985667").unwrap());
+    assert!(coord.latitude().is_northern());
+    assert!(coord.longitude().is_western());
+    assert!((f64::from(coord.latitude()) - 48.858222).abs() < 1e-6);
+    assert!((f64::from(coord.longitude()) - -73.985667).abs() < 1e-6);
+}
+
+#[test]
+fn coord_labeled_values_correct() {
+    let coord = unwrap_coordinate(
+        parse::parse_str("48° 51′ 29.600000″ S, 73° 59′ 8.400000″ W").unwrap(),
+    );
+    assert!(coord.latitude().is_southern());
+    assert!(coord.longitude().is_western());
+}
+
+// ---------------------------------------------------------------------------
+// Coordinate pairs — malformed structural cases
+// ---------------------------------------------------------------------------
+
+#[test]
+fn coord_err_empty_before_comma() {
+    assert!(parse::parse_str(", 48.0").is_err());
+}
+
+#[test]
+fn coord_err_empty_after_comma() {
+    assert!(parse::parse_str("48.0,").is_err());
+}
+
+#[test]
+fn coord_err_only_comma() {
+    assert!(parse::parse_str(",").is_err());
+}
+
+#[test]
+fn coord_err_only_whitespace_around_comma() {
+    assert!(parse::parse_str(" , ").is_err());
+}
+
+// ---------------------------------------------------------------------------
+// FromStr — out-of-range Unknown values rejected by the typed slot
+// ---------------------------------------------------------------------------
+
+#[test]
+fn from_str_latitude_err_out_of_range_decimal() {
+    // 95.0 parses as Unknown but fails latitude validation.
+    let result: Result<Latitude, _> = "95.0".parse();
+    assert!(result.is_err());
+}
+
+#[test]
+fn from_str_longitude_err_out_of_range_decimal() {
+    let result: Result<Longitude, _> = "200.0".parse();
+    assert!(result.is_err());
+}
+
+#[test]
+fn from_str_latitude_err_garbage() {
+    let result: Result<Latitude, _> = "not a latitude".parse();
+    assert!(result.is_err());
+}
+
+#[test]
+fn from_str_longitude_err_garbage() {
+    let result: Result<Longitude, _> = "not a longitude".parse();
+    assert!(result.is_err());
+}
+
+#[test]
+fn from_str_coordinate_err_garbage() {
+    let result: Result<Coordinate, _> = "hello, world".parse();
+    assert!(result.is_err());
+}
+
+// ---------------------------------------------------------------------------
+// Round-trip via Display
+// ---------------------------------------------------------------------------
+
+#[test]
+fn round_trip_latitude_decimal_display() {
+    let lat: Latitude = "48.858222".parse().unwrap();
+    let s = format!("{lat}");
+    let lat2: Latitude = s.parse().unwrap();
+    assert_eq!(lat, lat2);
+}
+
+#[test]
+fn round_trip_longitude_decimal_display() {
+    let lon: Longitude = "-73.985667".parse().unwrap();
+    let s = format!("{lon}");
+    let lon2: Longitude = s.parse().unwrap();
+    assert_eq!(lon, lon2);
+}
+
+#[test]
+fn round_trip_coordinate_decimal_display() {
+    let coord: Coordinate = "48.858222, -73.985667".parse().unwrap();
+    let s = format!("{coord}");
+    let coord2: Coordinate = s.parse().unwrap();
+    assert_eq!(coord, coord2);
 }

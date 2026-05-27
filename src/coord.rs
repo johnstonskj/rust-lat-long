@@ -1,4 +1,12 @@
 //! This module provides the [`Coordinate`] type, [`crate::coord!`] macro, and associated constants.
+//!
+//! A geographic coordinate system (GCS) is a spherical or geodetic coordinate system for measuring
+//! and communicating positions directly on Earth as latitude and longitude. It is the simplest,
+//! oldest, and most widely used type of the various spatial reference systems that are in use, and
+//! forms the basis for most others. Although latitude and longitude form a coordinate tuple like a
+//! Cartesian coordinate system, geographic coordinate systems are not Cartesian because the
+//! measurements are angles and are not on a planar surface.
+//!
 
 #[cfg(feature = "elevation")]
 use crate::{Elevation, elevation::CoordinateWithElevation};
@@ -55,10 +63,16 @@ pub struct Coordinate {
 /// Defined by [RFC 5870](https://www.rfc-editor.org/rfc/rfc5870).
 pub const GEO_URL_SCHEME: &str = "geo";
 
+/// JSON object key used for the GeoJSON geometry-type discriminator.
 #[cfg(feature = "geojson")]
 pub const GEOJSON_TYPE_FIELD: &str = "type";
+
+/// JSON object key under which the GeoJSON coordinate array is stored.
 #[cfg(feature = "geojson")]
 pub const GEOJSON_COORDINATES_FIELD: &str = "coordinates";
+
+/// GeoJSON `type` value identifying a point geometry — the only geometry kind
+/// produced or accepted by this crate.
 #[cfg(feature = "geojson")]
 pub const GEOJSON_POINT_TYPE: &str = "Point";
 
@@ -66,6 +80,28 @@ pub const GEOJSON_POINT_TYPE: &str = "Point";
 // Public Macros
 // ---------------------------------------------------------------------------
 
+///
+///  Construct a [`Coordinate`] (or, with the `elevation` feature, a
+/// [`CoordinateWithElevation`]) from already-validated components.
+///
+/// Semicolons are used as separators to avoid clashing with the comma syntax
+/// of decimal degrees in the parser.
+///
+/// * `coord!(lat ; lon)` — two-dimensional point.
+/// * `coord!(lat ; lon ; elevation)` — three-dimensional point (requires the
+///   `elevation` feature).
+///
+/// # Examples
+///
+/// ```rust
+/// use lat_long::{Angle, Coordinate, Latitude, Longitude, coord};
+///
+/// let lat = Latitude::new(48, 51, 30.0).unwrap();
+/// let lon = Longitude::new(2, 21, 8.0).unwrap();
+/// let paris: Coordinate = coord!(lat ; lon);
+/// assert!(paris.is_northern());
+/// ```
+///
 #[cfg(not(feature = "elevation"))]
 #[macro_export]
 macro_rules! coord {
@@ -74,6 +110,9 @@ macro_rules! coord {
     };
 }
 
+/// Construct a [`Coordinate`] or [`CoordinateWithElevation`] from
+/// already-validated components. See the `not(feature = "elevation")` variant
+/// for additional documentation and examples.
 #[cfg(feature = "elevation")]
 #[macro_export]
 macro_rules! coord {
@@ -189,6 +228,25 @@ impl Coordinate {
         self
     }
 
+    /// Return a new [`CoordinateWithElevation`] combining this 2D coordinate
+    /// with the supplied [`Elevation`].
+    ///
+    /// Only available when the `elevation` feature is enabled.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # #[cfg(feature = "elevation")]
+    /// # {
+    /// use lat_long::{Angle, Coordinate, Elevation, Latitude, Longitude};
+    ///
+    /// let lat = Latitude::new(47, 37, 13.0).unwrap();
+    /// let lon = Longitude::new(-122, 20, 57.0).unwrap();
+    /// let seattle = Coordinate::new(lat, lon);
+    /// let with_height = seattle.with_elevation(Elevation::meters(56.0));
+    /// assert_eq!(with_height.point(), seattle);
+    /// # }
+    /// ```
     #[cfg(feature = "elevation")]
     #[must_use]
     pub const fn with_elevation(&self, elevation: Elevation) -> CoordinateWithElevation {

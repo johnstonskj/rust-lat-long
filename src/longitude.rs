@@ -1,4 +1,16 @@
 //! This module provides the [`Longitude`] type, [`crate::long!`] macro, and associated constants.
+//!
+//! Longitude is a geographic coordinate that specifies the east-west position of a point on the
+//! surface of the Earth. It is an angular measurement, usually expressed in degrees and denoted
+//! by the Greek letter lambda (λ). Meridians are imaginary semicircular lines running from pole
+//! to pole that connect points with the same longitude. The prime meridian defines 0° longitude;
+//! by convention the International Reference Meridian for the Earth passes near the Royal
+//! Observatory in Greenwich, south-east London on the island of Great Britain. Positive longitudes
+//! are east of the prime meridian, and negative ones are west.
+//!
+//! The longitude denoted by the type [`Longitude`] is not strictly a *Geodetic Longitude* in that it
+//! is not defined in relation to some reference geodetic datum but some abstract center of mass.
+//!
 
 use crate::{
     Angle, Error,
@@ -19,6 +31,7 @@ use serde::{Deserialize, Serialize};
 // Public Types
 // ---------------------------------------------------------------------------
 
+///
 /// A geographic longitude value, constrained to **−180 ≤ degrees ≤ 180**.
 ///
 /// Positive values are east of the international reference meridian; negative
@@ -32,6 +45,7 @@ use serde::{Deserialize, Serialize};
 /// let lon = Longitude::new(-73, 56, 0.0).unwrap();
 /// assert!(lon.is_western());
 /// ```
+///
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Longitude(OrderedFloat<f64>);
@@ -40,16 +54,47 @@ pub struct Longitude(OrderedFloat<f64>);
 // Public Constants
 // ---------------------------------------------------------------------------
 
+///
 /// IERS International Reference Meridian (IRM), or Prime Meridian, at 0° longitude.
+///
 pub const INTERNATIONAL_REFERENCE_MERIDIAN: Longitude = Longitude(inner::ZERO);
 
+///
 /// Antimeridian, the basis for the International Date Line (IDL), at 180° longitude.
+///
 pub const ANTI_MERIDIAN: Longitude = Longitude(OrderedFloat(LONGITUDE_LIMIT));
 
 // ---------------------------------------------------------------------------
 // Public Macros
 // ---------------------------------------------------------------------------
 
+///
+/// Ergonomic constructor for [`Longitude`] values.
+///
+/// All forms `.unwrap()` internally — they are intended for compile-time-known
+/// constants and tests where invalid input is a bug. Use [`Longitude::new`]
+/// when you need to handle validation errors.
+///
+/// | Form                                | Example                   | Meaning              |
+/// |-------------------------------------|---------------------------|----------------------|
+/// | `long!(d)`                          | `long!(2)`                | 2° E                 |
+/// | `long!(d, m)`                       | `long!(2, 21)`            | 2° 21′ E             |
+/// | `long!(d, m, s)`                    | `long!(2, 21, 8.0)`       | 2° 21′ 8″ E          |
+/// | `long!(E d, …)` / `long!(W d, …)`   | `long!(W 73, 59, 8.4)`    | explicit hemisphere  |
+///
+/// The `E`/`W` prefix forms take the absolute value of the degree argument
+/// and apply the sign matching the direction.
+///
+/// # Examples
+///
+/// ```rust
+/// use lat_long::{Angle, Longitude, long};
+///
+/// let lon = long!(2, 21, 8.0);
+/// assert!(lon.is_eastern());
+/// assert_eq!(lon.degrees(), 2);
+/// ```
+///
 #[macro_export]
 macro_rules! long {
     (E $degrees:expr, $minutes:expr, $seconds:expr) => {
@@ -140,8 +185,10 @@ impl FromStr for Longitude {
 }
 
 impl Display for Longitude {
+    ///
     /// Formats the longitude as decimal degrees by default, or as
     /// degrees–minutes–seconds when the alternate flag (`{:#}`) is used.
+    ///
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if f.alternate() {
             let mut buf = String::new();
@@ -178,23 +225,47 @@ impl Angle for Longitude {
 }
 
 impl Longitude {
+    ///
     /// Returns `true` if this longitude is exactly on the IERS International Reference Meridian (IRM), or 0°.
+    ///
     #[must_use]
     pub fn is_on_international_reference_meridian(&self) -> bool {
         self.is_zero()
     }
 
+    ///
     /// Returns `true` if this longitude is in the western hemisphere (< 0°).
+    ///
     #[must_use]
     pub fn is_western(&self) -> bool {
         self.is_nonzero_negative()
     }
 
+    ///
     /// Returns `true` if this longitude is in the eastern hemisphere (> 0°).
+    ///
     #[must_use]
     pub fn is_eastern(&self) -> bool {
         self.is_nonzero_positive()
     }
+    ///
+    /// Return the [UTM longitude zone](https://en.wikipedia.org/wiki/Universal_Transverse_Mercator_coordinate_system#UTM_zone)
+    /// number (1–60) covering this longitude.
+    ///
+    /// Zones are 6° wide and are numbered starting at the antimeridian
+    /// (180° W = zone 1) and increasing eastward.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use lat_long::{Angle, Longitude};
+    ///
+    /// // Seattle ~ -122.3° falls in zone 10.
+    /// let lon = Longitude::try_from(-122.3).unwrap();
+    /// assert_eq!(lon.utm_zone(), 10);
+    /// ```
+    ///
+    #[must_use]
     pub fn utm_zone(&self) -> u8 {
         // UTM zones are 6° wide, numbered 1–60 starting at 180°W.
         // The formula below maps the range (−180, 180] to (0, 60], with 0 and 60 both representing the same zone.

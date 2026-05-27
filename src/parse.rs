@@ -117,6 +117,7 @@
 //! assert!(parse::parse_str("+048:51:29.600000,-073:59:08.400000").is_ok());
 //! assert!(parse::parse_str("+048:51:29.600000, 73° 59′ 8.400000″ W").is_ok());
 //! ```
+//!
 
 use crate::{Coordinate, Error, Latitude, Longitude, inner};
 use ordered_float::OrderedFloat;
@@ -125,13 +126,30 @@ use ordered_float::OrderedFloat;
 // Public Types
 // ---------------------------------------------------------------------------
 
+///
 /// The result of a successful [`parse_str`] call.
+///
+/// A bare angle string yields [`Parsed::Angle`]; a comma-separated
+/// latitude/longitude string yields [`Parsed::Coordinate`].
+///
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Parsed {
+    /// A single angle. See [`Value`] for the latitude / longitude / unknown
+    /// discrimination.
     Angle(Value),
+    /// A complete latitude–longitude pair.
     Coordinate(Coordinate),
 }
 
+///
+/// A parsed angular value, optionally tagged with its kind.
+///
+/// The labeled DMS format (`48° 51′ 29.6″ N`) carries an explicit
+/// `N`/`S`/`E`/`W` direction letter, which lets the parser commit to a
+/// specific concrete type. All other formats (decimal, signed DMS, bare DMS)
+/// are direction-agnostic and produce [`Value::Unknown`] — the caller is
+/// expected to resolve which axis the value belongs to.
+///
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Value {
     /// A value whose direction (latitude vs longitude) is not specified
@@ -147,11 +165,13 @@ pub enum Value {
 // Public Functions
 // ---------------------------------------------------------------------------
 
+///
 /// Parse a string into a [`Parsed`] enum.
 ///
 /// Accepts all four angle formats (decimal, signed DMS, labeled DMS, bare DMS)
 /// as individual values or as a comma-separated coordinate pair. See the
 /// module-level documentation for the full grammar and format rules.
+///
 pub fn parse_str(s: &str) -> Result<Parsed, Error> {
     // Rule 1: no leading or trailing whitespace.
     if s.starts_with(|c: char| c.is_ascii_whitespace())
@@ -175,12 +195,16 @@ pub fn parse_str(s: &str) -> Result<Parsed, Error> {
 // Private helpers: top-level dispatch
 // ---------------------------------------------------------------------------
 
+///
 /// Find the byte index of the first ASCII comma in `s`.
+///
 fn find_comma(s: &str) -> Option<usize> {
     s.find(',')
 }
 
+///
 /// Parse a single-angle string (no comma present). Returns the [`Value`].
+///
 fn parse_single(s: &str) -> Result<Value, Error> {
     // Try in order: labeled DMS (has °...″ + direction letter), signed DMS
     // (has °...″ without direction), bare DMS (starts with +/-NNN:MM:SS),
@@ -197,8 +221,10 @@ fn parse_single(s: &str) -> Result<Value, Error> {
     try_decimal(s).map(Value::Unknown)
 }
 
+///
 /// Parse a comma-separated coordinate pair. `comma_pos` is the byte index of
 /// the first comma in `s`.
+///
 fn parse_pair(s: &str, comma_pos: usize) -> Result<Parsed, Error> {
     let lat_src = &s[..comma_pos];
     let after_comma = &s[comma_pos + 1..];
@@ -237,11 +263,14 @@ fn parse_pair(s: &str, comma_pos: usize) -> Result<Parsed, Error> {
 // Slot-typed parsers used for coordinate pairs
 // ---------------------------------------------------------------------------
 
+///
 /// Parse `s` as the latitude slot of a coordinate pair.
 ///
 /// Accepts: decimal, signed DMS, bare DMS (all produce `Unknown` → validated
 /// as latitude), or labeled DMS with N/S.
+///
 /// Rejects: labeled DMS with E/W.
+///
 fn parse_as_latitude(s: &str) -> Result<Latitude, Error> {
     if let Some(result) = try_labeled_dms(s) {
         return match result? {
@@ -262,11 +291,14 @@ fn parse_as_latitude(s: &str) -> Result<Latitude, Error> {
     })
 }
 
+///
 /// Parse `s` as the longitude slot of a coordinate pair.
 ///
 /// Accepts: decimal, signed DMS, bare DMS (all produce `Unknown` → validated
 /// as longitude), or labeled DMS with E/W.
+///
 /// Rejects: labeled DMS with N/S.
+///
 fn parse_as_longitude(s: &str) -> Result<Longitude, Error> {
     if let Some(result) = try_labeled_dms(s) {
         return match result? {
@@ -286,8 +318,10 @@ fn parse_as_longitude(s: &str) -> Result<Longitude, Error> {
     })
 }
 
+///
 /// Parse any non-labeled format (decimal, signed DMS, bare DMS) into a raw
 /// float. Used when parsing a coordinate slot without a direction letter.
+///
 fn parse_as_float(s: &str) -> Result<OrderedFloat<f64>, Error> {
     if let Some(result) = try_signed_dms(s) {
         return result;
@@ -302,11 +336,14 @@ fn parse_as_float(s: &str) -> Result<OrderedFloat<f64>, Error> {
 // Format detectors / sub-parsers
 // ---------------------------------------------------------------------------
 
+///
 /// Returns `true` if `s` looks like a bare-DMS token (`+NNN:MM:SS.sss…`).
+///
 fn is_bare_dms(s: &str) -> bool {
     matches!(s.as_bytes().first(), Some(b'+') | Some(b'-')) && s.contains(':')
 }
 
+///
 /// `^(?<sign>[-+])?(?<degrees>\d{1,3})°\s*(?<minutes>\d{1,2})′\s*(?<seconds>\d{1,2}\.\d+)″$`
 ///
 /// Returns `None` if the string doesn't contain the `°` symbol (not this
@@ -316,6 +353,7 @@ fn is_bare_dms(s: &str) -> bool {
 /// Returns `Some(Ok(Value::Latitude))` for N/S direction,
 /// `Some(Ok(Value::Longitude))` for E/W, `None` if no direction letter is
 /// found (caller should try signed DMS next).
+///
 fn try_labeled_dms(s: &str) -> Option<Result<Value, Error>> {
     // Quick reject: must contain the degrees symbol.
     if !s.contains('°') {
@@ -415,9 +453,11 @@ fn try_labeled_dms(s: &str) -> Option<Result<Value, Error>> {
     }
 }
 
+///
 /// `^(?<sign>[-+])?(?<degrees>\d{1,3})°\s*(?<minutes>\d{1,2})′\s*(?<seconds>\d{1,2}\.\d+)″$`
 ///
 /// Returns `None` if the string doesn't look like a signed DMS value.
+///
 fn try_signed_dms(s: &str) -> Option<Result<OrderedFloat<f64>, Error>> {
     if !s.contains('°') {
         return None;
@@ -476,10 +516,12 @@ fn try_signed_dms(s: &str) -> Option<Result<OrderedFloat<f64>, Error>> {
     ))
 }
 
+///
 /// `^(?<sign>[-+])(?<degrees>\d{3}):(?<minutes>\d{2}):(?<seconds>\d{2}\.\d{4,})$`
 ///
 /// Returns `None` if the string doesn't start with a sign followed by digits
 /// and colons.
+///
 fn try_bare_dms(s: &str) -> Option<Result<OrderedFloat<f64>, Error>> {
     // Must start with mandatory sign.
     let neg = match s.as_bytes().first()? {
@@ -526,35 +568,39 @@ fn try_bare_dms(s: &str) -> Option<Result<OrderedFloat<f64>, Error>> {
     ))
 }
 
+///
 /// `^(?<sign>[-+])?(?<int>\d{1,3})(\.(?<frac>\d+)?)$`
 /// OR
 /// `^(?<int>\d{1,3})(\.(?<frac>\d+)?)(?<dir>[NSEW])$`
 ///
 /// Returns an error (not `None`) on obvious format violations so callers can
 /// produce a good diagnostic.
+///
 fn try_decimal(s: &str) -> Result<OrderedFloat<f64>, Error> {
     // Rule 2: check for sign followed by whitespace.
+    let had_explicit_sign = matches!(s.as_bytes().first(), Some(b'+') | Some(b'-'));
     let (neg, rest) = consume_sign(s);
     if neg && rest.starts_with(|c: char| c.is_ascii_whitespace()) {
         return Err(Error::InvalidWhitespace(s.to_string()));
     }
 
-    let maybe_sign = rest.chars().next().unwrap_or('\0');
     let maybe_direction = rest.chars().last().unwrap_or('\0');
-    // Validate direction character.
-    let (neg, rest) = match (maybe_sign, maybe_direction) {
-        ('+' | '-', 'N' | 'S' | 'E' | 'W') => {
+    // Validate direction character. A leading +/- combined with a trailing
+    // N/S/E/W is contradictory (labeled decimals carry their sign in the
+    // direction letter).
+    let (neg, directioned, rest) = match (had_explicit_sign, maybe_direction) {
+        (true, 'N' | 'S' | 'E' | 'W') => {
             return Err(Error::InvalidNumericFormat(s.to_string()));
         }
-        (_, 'S' | 'W') => (true, &rest[..rest.len() - 1]),
-        (_, 'N' | 'E') => (false, &rest[..rest.len() - 1]),
-        _ => (false, rest),
+        (_, 'S' | 'W') => (true, true, &rest[..rest.len() - 1]),
+        (_, 'N' | 'E') => (false, true, &rest[..rest.len() - 1]),
+        _ => (neg, false, rest),
     };
 
-    // Must contain exactly one dot.
+    // Un-labeled decimals require a `.`; labeled decimals may omit it.
     let parts = rest.split('.').collect::<Vec<_>>();
     let (int_part, frac_part) = match parts.len() {
-        1 => (parts[0], "0"),
+        1 if directioned => (parts[0], "0"),
         2 => (parts[0], parts[1]),
         _ => {
             return Err(Error::InvalidNumericFormat(s.to_string()));
@@ -567,7 +613,7 @@ fn try_decimal(s: &str) -> Result<OrderedFloat<f64>, Error> {
     }
 
     // Fractional part: ≥1 digit.
-    if frac_part.is_empty() || !frac_part.bytes().all(|b| b.is_ascii_digit()) {
+    if (frac_part.is_empty() || !frac_part.bytes().all(|b| b.is_ascii_digit())) && !directioned {
         return Err(Error::InvalidNumericFormat(s.to_string()));
     }
 
@@ -589,7 +635,9 @@ fn try_decimal(s: &str) -> Result<OrderedFloat<f64>, Error> {
 // Sub-parsers (pure, no allocation)
 // ---------------------------------------------------------------------------
 
+///
 /// Consume an optional leading `+` or `-`. Returns `(is_negative, rest_of_str)`.
+///
 fn consume_sign(s: &str) -> (bool, &str) {
     match s.as_bytes().first() {
         Some(b'+') => (false, &s[1..]),
@@ -598,20 +646,26 @@ fn consume_sign(s: &str) -> (bool, &str) {
     }
 }
 
+///
 /// Return the slice before and after the first occurrence of Unicode `delim`.
 /// Returns `None` if the delimiter is not found.
+///
 fn consume_up_to(s: &str, delim: char) -> Option<(&str, &str)> {
     let pos = s.find(delim)?;
     Some((&s[..pos], &s[pos + delim.len_utf8()..]))
 }
 
+///
 /// Skip leading ASCII whitespace.
+///
 fn skip_whitespace(s: &str) -> &str {
     s.trim_start_matches(|c: char| c.is_ascii_whitespace())
 }
 
+///
 /// Parse a degree string with `min_len..=max_len` digit count.
 /// `neg` folds the sign into the return value.
+///
 fn parse_degrees(s: &str, min_len: usize, max_len: usize, neg: bool) -> Option<i32> {
     if s.len() < min_len || s.len() > max_len || !s.bytes().all(|b| b.is_ascii_digit()) {
         return None;
@@ -620,7 +674,9 @@ fn parse_degrees(s: &str, min_len: usize, max_len: usize, neg: bool) -> Option<i
     Some(if neg { -v } else { v })
 }
 
+///
 /// Parse a minutes string (1–2 digits).
+///
 fn parse_minutes(s: &str) -> Option<u32> {
     if s.is_empty() || s.len() > 2 || !s.bytes().all(|b| b.is_ascii_digit()) {
         return None;
@@ -628,7 +684,9 @@ fn parse_minutes(s: &str) -> Option<u32> {
     parse_u32_digits(s.as_bytes())
 }
 
+///
 /// Parse a seconds string of the form `\d{1,2}\.\d+`.
+///
 fn parse_seconds(s: &str) -> Option<f32> {
     let dot = s.find('.')?;
     let int_part = &s[..dot];
@@ -646,8 +704,10 @@ fn parse_seconds(s: &str) -> Option<f32> {
     Some((int_val as f64 + frac_val) as f32)
 }
 
+///
 /// Accumulate ASCII decimal digits into a `u32`. Returns `None` on non-digit
 /// bytes or overflow.
+///
 fn parse_u32_digits(bytes: &[u8]) -> Option<u32> {
     let mut acc: u32 = 0;
     for &b in bytes {
@@ -659,7 +719,9 @@ fn parse_u32_digits(bytes: &[u8]) -> Option<u32> {
     Some(acc)
 }
 
+///
 /// Convert the fractional-digit bytes after a `.` into a `f64` in `[0, 1)`.
+///
 fn parse_fraction(bytes: &[u8]) -> Option<f64> {
     let mut acc: f64 = 0.0;
     let mut place: f64 = 0.1;

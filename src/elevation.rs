@@ -2,6 +2,13 @@
 //! This module provides an [`Elevation`] type, [`crate::elv!`] macro, and a [`CoordinateWithElevation`]
 //! structure which is a lat/long [`Coordinate`] with an associated elevation.
 //!
+//! The elevation of a geographic location is its height above or below a fixed reference point, most
+//! commonly a reference geoid, a mathematical model of the Earth's sea level as an equipotential
+//! gravitational surface (see Geodetic datum § Vertical datum).
+//!
+//! The reference point for the type [`Elevation`] is not defined, therefore any absolute value **must**
+//! be calculated by conversion from convention in reference to some datum.
+//!
 
 use crate::{
     Coordinate, Error, Latitude, Longitude,
@@ -62,15 +69,15 @@ macro_rules! elv {
 // Public Types
 // ------------------------------------------------------------------------------------------------
 
-/// 
+///
 /// An elevation, in meters, above or below an undefined reference level.
-/// 
+///
 #[allow(clippy::derive_ord_xor_partial_ord)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Elevation(Length);
 
-/// 
+///
 /// A three dimensional geographic coordinate expressed as a (latitude, longitude, elevation) triple.
 ///
 /// # Examples
@@ -200,9 +207,9 @@ impl Elevation {
         Self(Length::new::<length::meter>(ELEVATION_ZERO))
     }
 
-    /// 
+    ///
     /// Construct an elevation in centimeters.
-    /// 
+    ///
     pub fn centimeters(value: f64) -> Self {
         assert!(
             value.is_finite() && !value.is_nan(),
@@ -211,9 +218,9 @@ impl Elevation {
         Self(Length::new::<length::centimeter>(value))
     }
 
-    /// 
+    ///
     /// Construct an elevation in meters.
-    /// 
+    ///
     pub fn meters(value: f64) -> Self {
         assert!(
             value.is_finite() && !value.is_nan(),
@@ -222,9 +229,9 @@ impl Elevation {
         Self(Length::new::<length::meter>(value))
     }
 
-    /// 
+    ///
     /// Construct an elevation in kilometers.
-    /// 
+    ///
     pub fn kilometers(value: f64) -> Self {
         assert!(
             value.is_finite() && !value.is_nan(),
@@ -235,14 +242,14 @@ impl Elevation {
 
     ///
     /// Returns the elevation value in meters as an `f64`.
-    /// 
+    ///
     pub fn value(&self) -> f64 {
         self.0.value
     }
 
-    /// 
+    ///
     /// Returns `true` if this elevation is exactly zero.
-    /// 
+    ///
     pub fn is_zero(&self) -> bool {
         self.0.value == ELEVATION_ZERO
     }
@@ -286,9 +293,9 @@ impl FromStr for CoordinateWithElevation {
 }
 
 impl CoordinateWithElevation {
-    /// 
+    ///
     /// Construct a new 3d coordinate from a 2d point and an elevation.
-    /// 
+    ///
     #[must_use]
     pub const fn new(point: Coordinate, elevation: Elevation) -> Self {
         Self { point, elevation }
