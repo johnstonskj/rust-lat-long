@@ -25,7 +25,7 @@
 //! let dms = lat.to_formatted_string(&FormatOptions::dms_labeled().with_latitude_labels());
 //! assert!(dms.ends_with(" N"));
 //! ```
-//! 
+//!
 
 use crate::inner;
 use core::{
@@ -99,10 +99,10 @@ pub struct FormatOptions {
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FormatKind {
     #[default]
-    /// 
+    ///
     /// Format as decimal degrees, e.g. `48.8582`. This format has a *default* precision
     /// of 8 decimal places.
-    /// 
+    ///
     Decimal,
 
     /// Format as degrees with Unicode symbols, e.g. `-48° 51′ 29.600000″`. This format
@@ -122,23 +122,23 @@ pub enum FormatKind {
 // Public Constants
 // ---------------------------------------------------------------------------
 
-/// 
+///
 /// Default number of fractional digits used when rendering decimal degrees.
-/// 
+///
 pub const DEFAULT_DECIMAL_PRECISION: usize = 8;
 
-/// 
+///
 /// Default number of fractional digits used for the seconds component of any
 /// DMS rendering.
-/// 
+///
 pub const DEFAULT_DMS_PRECISION: usize = 6;
 
-/// 
+///
 /// Minimum number of fractional digits enforced by [`FormatKind::DmsBare`].
 ///
 /// The bare format is designed to be machine-parseable, so its seconds field
 /// has a guaranteed-minimum width regardless of the requested precision.
-/// 
+///
 pub const MINIMUM_DMS_BARE_PRECISION: usize = 4;
 
 // ---------------------------------------------------------------------------
@@ -170,42 +170,42 @@ impl FormatOptions {
         }
     }
 
-    /// 
+    ///
     /// Return a [`FormatOptions`] for decimal degrees with the default precision.
-    /// 
+    ///
     pub const fn decimal() -> Self {
         Self::new(FormatKind::Decimal).with_default_precision()
     }
 
-    /// 
+    ///
     /// Return a [`FormatOptions`] for degrees, minutes, seconds with the default precision.
-    /// 
+    ///
     pub const fn dms() -> Self {
         Self::dms_signed()
     }
 
-    /// 
+    ///
     /// Return a [`FormatOptions`] for signed degrees, minutes, seconds with the default precision.
-    /// 
+    ///
     pub const fn dms_signed() -> Self {
         Self::new(FormatKind::DmsSigned).with_default_precision()
     }
 
-    /// 
+    ///
     /// Return a [`FormatOptions`] for labeled degrees, minutes, seconds with the default precision.
-    /// 
+    ///
     pub const fn dms_labeled() -> Self {
         Self::new(FormatKind::DmsLabeled).with_default_precision()
     }
 
-    /// 
+    ///
     /// Return a [`FormatOptions`] for bare degrees, minutes, seconds with the default precision.
-    /// 
+    ///
     pub const fn dms_bare() -> Self {
         Self::new(FormatKind::DmsBare).with_default_precision()
     }
 
-    /// 
+    ///
     /// Override the number of fractional digits used when rendering.
     ///
     /// # Examples
@@ -217,18 +217,18 @@ impl FormatOptions {
     /// let s = lat.to_formatted_string(&FormatOptions::decimal().with_precision(2));
     /// assert_eq!(s, "48.86");
     /// ```
-    /// 
+    ///
     pub const fn with_precision(mut self, precision: usize) -> Self {
         self.precision = Some(precision);
         self
     }
 
-    /// 
+    ///
     /// Set the precision to the default value for the current [`FormatKind`].
     ///
     /// Decimal uses [`DEFAULT_DECIMAL_PRECISION`]; every DMS variant uses
     /// [`DEFAULT_DMS_PRECISION`].
-    /// 
+    ///
     pub const fn with_default_precision(mut self) -> Self {
         match self.kind {
             FormatKind::Decimal => self.precision = Some(DEFAULT_DECIMAL_PRECISION),
@@ -237,100 +237,100 @@ impl FormatOptions {
         self
     }
 
-    /// 
+    ///
     /// Set the `(positive, negative)` label pair used by [`FormatKind::DmsLabeled`].
     ///
     /// Prefer [`with_latitude_labels`](Self::with_latitude_labels) or
     /// [`with_longitude_labels`](Self::with_longitude_labels) for the standard
     /// `N`/`S` and `E`/`W` pairs.
-    /// 
+    ///
     pub const fn with_labels(mut self, labels: (char, char)) -> Self {
         self.labels = Some(labels);
         self
     }
 
-    /// 
+    ///
     /// Convenience: set labels to the latitude pair `('N', 'S')`.
-    /// 
+    ///
     pub const fn with_latitude_labels(mut self) -> Self {
         self.labels = Some(('N', 'S'));
         self
     }
 
-    /// 
+    ///
     /// Convenience: set labels to the longitude pair `('E', 'W')`.
-    /// 
+    ///
     pub const fn with_longitude_labels(mut self) -> Self {
         self.labels = Some(('E', 'W'));
         self
     }
 
-    /// 
+    ///
     /// Returns the configured [`FormatKind`].
-    /// 
+    ///
     pub const fn kind(&self) -> FormatKind {
         self.kind
     }
 
-    /// 
+    ///
     /// Returns `true` if this is a [`FormatKind::Decimal`] format.
-    /// 
+    ///
     pub const fn is_decimal(&self) -> bool {
         matches!(self.kind(), FormatKind::Decimal)
     }
 
-    /// 
+    ///
     /// Returns `true` if this is any DMS variant (signed, labeled, or bare).
-    /// 
+    ///
     pub const fn is_dms(&self) -> bool {
         self.is_dms_signed() || self.is_dms_labeled() || self.is_dms_bare()
     }
 
-    /// 
+    ///
     /// Returns `true` if this is the [`FormatKind::DmsSigned`] variant.
-    /// 
+    ///
     pub const fn is_dms_signed(&self) -> bool {
         matches!(self.kind(), FormatKind::DmsSigned)
     }
 
-    /// 
+    ///
     /// Returns `true` if this is the [`FormatKind::DmsLabeled`] variant.
-    /// 
+    ///
     pub const fn is_dms_labeled(&self) -> bool {
         matches!(self.kind(), FormatKind::DmsLabeled)
     }
 
-    /// 
+    ///
     /// Returns `true` if this is the [`FormatKind::DmsBare`] variant.
-    /// 
+    ///
     pub const fn is_dms_bare(&self) -> bool {
         matches!(self.kind(), FormatKind::DmsBare)
     }
 
-    /// 
+    ///
     /// Returns the configured precision, if any was set.
-    /// 
+    ///
     pub const fn precision(&self) -> Option<usize> {
         self.precision
     }
 
-    /// 
+    ///
     /// Returns the configured `(positive, negative)` label pair, if any.
-    /// 
+    ///
     pub const fn labels(&self) -> Option<(char, char)> {
         self.labels
     }
 
-    /// 
+    ///
     /// Returns just the label used for positive values, if labels are set.
-    /// 
+    ///
     pub fn positive_label(&self) -> Option<char> {
         self.labels.as_ref().map(|l| l.0)
     }
 
-    /// 
+    ///
     /// Returns just the label used for negative values, if labels are set.
-    /// 
+    ///
     pub fn negative_label(&self) -> Option<char> {
         self.labels.as_ref().map(|l| l.1)
     }

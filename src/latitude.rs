@@ -398,8 +398,7 @@ impl Latitude {
                 }
             }
             _ => {
-                let index =
-                    (((latitude + LATITUDE_LIMIT) / BAND_WIDTH_DEGREES) as f64).floor() as usize;
+                let index = ((latitude + LATITUDE_LIMIT) / BAND_WIDTH_DEGREES).floor() as usize;
                 BANDS[index]
             }
         }

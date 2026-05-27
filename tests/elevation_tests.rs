@@ -1,7 +1,9 @@
 #![cfg(feature = "elevation")]
 
+use lat_long::{
+    Angle, Coordinate, CoordinateWithElevation, Elevation, Error, Latitude, Longitude, elv,
+};
 use std::str::FromStr;
-use lat_long::{Angle, Coordinate, CoordinateWithElevation, Elevation, Error, Latitude, Longitude, elv};
 use uom::si::{f64::Length, length};
 
 // --- Elevation construction and helpers ---
@@ -42,13 +44,22 @@ fn test_elevation_display_alternate_units() {
     assert_eq!(format!("{:#}", Elevation::meters(0.005)), "5 millimeters");
     assert_eq!(format!("{:#}", Elevation::meters(0.05)), "5 centimeters");
     assert_eq!(format!("{:#}", Elevation::meters(10.0)), "10 meters");
-    assert_eq!(format!("{:#}", Elevation::kilometers(1.5)), "1.5 kilometers");
+    assert_eq!(
+        format!("{:#}", Elevation::kilometers(1.5)),
+        "1.5 kilometers"
+    );
 }
 
 #[test]
 fn test_elevation_try_from_invalid_values() {
-    assert!(matches!(Elevation::try_from(f64::NAN), Err(Error::InvalidNumericValue(_))));
-    assert!(matches!(Elevation::try_from(f64::INFINITY), Err(Error::InvalidNumericValue(_))));
+    assert!(matches!(
+        Elevation::try_from(f64::NAN),
+        Err(Error::InvalidNumericValue(_))
+    ));
+    assert!(matches!(
+        Elevation::try_from(f64::INFINITY),
+        Err(Error::InvalidNumericValue(_))
+    ));
 }
 
 #[test]
@@ -71,7 +82,10 @@ fn test_coordinate_with_elevation_default_display() {
     assert_eq!(coord.point(), Coordinate::new(lat, lon));
     assert_eq!(coord.elevation(), elev);
     assert_eq!(format!("{coord}"), "51.50722222, 0.12750000, 100 m");
-    assert_eq!(format!("{coord:#}"), "51° 30′ 26.000000″, 0° 7′ 39.000000″, 100 m");
+    assert_eq!(
+        format!("{coord:#}"),
+        "51° 30′ 26.000000″, 0° 7′ 39.000000″, 100 m"
+    );
 }
 
 #[test]
@@ -100,7 +114,10 @@ fn test_coordinate_with_elevation_with_new_point() {
     let elev = Elevation::meters(0.0);
     let coord = CoordinateWithElevation::new_from(lat, lon, elev);
 
-    let new = coord.with_new_point(Latitude::new(23, 30, 0.0).unwrap(), Longitude::new(45, 0, 0.0).unwrap());
+    let new = coord.with_new_point(
+        Latitude::new(23, 30, 0.0).unwrap(),
+        Longitude::new(45, 0, 0.0).unwrap(),
+    );
 
     assert_eq!(new.point().latitude(), Latitude::new(23, 30, 0.0).unwrap());
     assert_eq!(new.point().longitude(), Longitude::new(45, 0, 0.0).unwrap());
@@ -109,7 +126,10 @@ fn test_coordinate_with_elevation_with_new_point() {
 
 #[test]
 fn test_coordinate_with_elevation_from_str_failure() {
-    assert!(matches!(CoordinateWithElevation::from_str("not-a-coordinate"), Err(Error::InvalidCoordinate)));
+    assert!(matches!(
+        CoordinateWithElevation::from_str("not-a-coordinate"),
+        Err(Error::InvalidCoordinate)
+    ));
 }
 
 #[test]

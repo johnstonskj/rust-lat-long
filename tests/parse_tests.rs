@@ -849,9 +849,8 @@ fn coord_decimal_values_correct() {
 
 #[test]
 fn coord_labeled_values_correct() {
-    let coord = unwrap_coordinate(
-        parse::parse_str("48° 51′ 29.600000″ S, 73° 59′ 8.400000″ W").unwrap(),
-    );
+    let coord =
+        unwrap_coordinate(parse::parse_str("48° 51′ 29.600000″ S, 73° 59′ 8.400000″ W").unwrap());
     assert!(coord.latitude().is_southern());
     assert!(coord.longitude().is_western());
 }
