@@ -9,10 +9,11 @@
 //!                     | ( <bare_dms> <separator> <longitude> )
 //!                     | ( <latitude> <separator> <bare_dms> )
 //!
-//! <latitude>      ::= <decimal> | <signed_dms> | <labeled_dms>
-//! <longitude>     ::= <decimal> | <signed_dms> | <labeled_dms>
+//! <latitude>      ::= <decimal> | <labeled_decimal> | <signed_dms> | <labeled_dms>
+//! <longitude>     ::= <decimal> | <labeled_decimal> |<signed_dms> | <labeled_dms>
 //! <separator>     ::= WHITESPACE* "," WHITESPACE*
-//! <decimal>       ::= <sign>? <digits> "." <digits>
+//! <decimal>       ::= <sign>? <digits> ( "." <digits> )?
+//! <labeled_decimal> ::= <digits> ( "." <digits> )? <direction>
 //! <signed_dms>    ::= <sign>? <degs> WHITESPACE* <mins> WHITESPACE* <secs>
 //! <labeled_dms>   ::= <degs> WHITESPACE* <mins> WHITESPACE* <secs> WHITESPACE* <direction>
 //! <bare_dms>      ::= <sign> <bare_degs> ":" <bare_mins> ":" <bare_secs>
@@ -61,6 +62,9 @@
 //! | " 48.858222"                              | Decimal         | Error(InvalidWhitespace)      |
 //! | "48.858222 "                              | Decimal         | Error(InvalidWhitespace)      |
 //! | - 48.858222                               | Decimal         | Error(InvalidCharacter)       |
+//! | 48E                                       | Labeled Decimal | Ok(Value(Unknown))            |
+//! | 48.5S                                     | Labeled Decimal | Ok(Value(Unknown))            |
+//! | "48 N"                                    | Labeled Decimal | Error(InvalidWhitespace)      |
 //! | 48° 51′ 29.600000″                        | Signed DMS      | Ok(Value(Unknown))            |
 //! | -48° 51′ 29.600000″                       | Signed DMS      | Ok(Value(Unknown))            |
 //! | 48° 51′ 29.600000″                        | Signed DMS      | Ok(Value(Unknown))            |
@@ -522,7 +526,9 @@ fn try_bare_dms(s: &str) -> Option<Result<OrderedFloat<f64>, Error>> {
     ))
 }
 
-/// `^(?<sign>[-+])?(?<int>\d{1,3})\.(?<frac>\d+)$`
+/// `^(?<sign>[-+])?(?<int>\d{1,3})(\.(?<frac>\d+)?)$`
+/// OR
+/// `^(?<int>\d{1,3})(\.(?<frac>\d+)?)(?<dir>[NSEW])$`
 ///
 /// Returns an error (not `None`) on obvious format violations so callers can
 /// produce a good diagnostic.
@@ -533,18 +539,33 @@ fn try_decimal(s: &str) -> Result<OrderedFloat<f64>, Error> {
         return Err(Error::InvalidWhitespace(s.to_string()));
     }
 
-    // Must contain exactly one dot.
-    let dot = rest
-        .find('.')
-        .ok_or_else(|| Error::InvalidNumericFormat(s.to_string()))?;
+    let maybe_sign = rest.chars().next().unwrap_or('\0');
+    let maybe_direction = rest.chars().last().unwrap_or('\0');
+    // Validate direction character.
+    let (neg, rest) = match (maybe_sign, maybe_direction) {
+        ('+' | '-', 'N' | 'S' | 'E' | 'W') => {
+            return Err(Error::InvalidNumericFormat(s.to_string()));
+        }
+        (_, 'S' | 'W') => (true, &rest[..rest.len() - 1]),
+        (_, 'N' | 'E') => (false, &rest[..rest.len() - 1]),
+        _ => (false, rest),
+    };
 
-    let int_part = &rest[..dot];
-    let frac_part = &rest[dot + 1..];
+    // Must contain exactly one dot.
+    let parts = rest.split('.').collect::<Vec<_>>();
+    let (int_part, frac_part) = match parts.len() {
+        1 => (parts[0], "0"),
+        2 => (parts[0], parts[1]),
+        _ => {
+            return Err(Error::InvalidNumericFormat(s.to_string()));
+        }
+    };
 
     // Integer part: 1–3 digits.
     if int_part.is_empty() || int_part.len() > 3 || !int_part.bytes().all(|b| b.is_ascii_digit()) {
         return Err(Error::InvalidNumericFormat(s.to_string()));
     }
+
     // Fractional part: ≥1 digit.
     if frac_part.is_empty() || !frac_part.bytes().all(|b| b.is_ascii_digit()) {
         return Err(Error::InvalidNumericFormat(s.to_string()));
