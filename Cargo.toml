@@ -14,7 +14,7 @@ rust-version = "1.90"
 
 [package.metadata.docs.rs]
 features = ["serde"]
-rustdoc-args = ["--generate-link-to-definition"]
+rustdoc-args = ["--generate-link-to-definition", "--html-in-header", "rustdoc/header.html"]
 
 [package.metadata.playground]
 features = ["serde"]

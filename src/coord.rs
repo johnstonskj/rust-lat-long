@@ -8,15 +8,15 @@
 //! measurements are angles and are not on a planar surface.
 //!
 
-#[cfg(feature = "elevation")]
-use crate::{Elevation, elevation::CoordinateWithElevation};
 use crate::{
-    Error, Latitude, Longitude,
+    Angle, Error, Latitude, Longitude,
     fmt::{FormatKind, FormatOptions, Formatter},
     latitude::EQUATOR,
     longitude::INTERNATIONAL_REFERENCE_MERIDIAN,
     parse::{self, Parsed},
 };
+#[cfg(feature = "elevation")]
+use crate::{Elevation, elevation::CoordinateWithElevation};
 use core::{
     fmt::{Debug, Display, Write},
     hash::Hash,
@@ -25,6 +25,7 @@ use core::{
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use uom::si::{f64::Length, length::kilometer};
 
 #[cfg(feature = "geojson")]
 use crate::Angle;
@@ -363,6 +364,100 @@ impl Coordinate {
             self.lat.to_formatted_string(&FormatOptions::decimal()),
             self.long.to_formatted_string(&FormatOptions::decimal())
         )
+    }
+
+    ///
+    /// Calculate the Haversine great-circle distance between two points on a sphere.
+    /// The result is a distance in Kilometers.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use lat_long::{Coordinate, Latitude, Longitude};
+    ///
+    /// let white_house = Coordinate::new(
+    ///     Latitide::try_from(38.898),
+    ///     Longitude::try_from(-77.037)
+    /// );
+    /// let eiffel_tower = Coordinate::new(
+    ///     Latitude::try_from(48.858),
+    ///     Longitude::try_from(2.294)
+    /// );
+    /// let distance = white_house.distance_to(&eiffel_tower);
+    /// assert_eq!(6161.6, distance.value);
+    /// ```
+    ///
+    /// # The Math
+    ///
+    /// Given two latitude/longitude pairs $(\varphi_1,\lambda_1)$, $(\varphi_3,\lambda_2)$, first
+    /// calculate the difference between latitude and longitude.
+    ///
+    /// $$\Delta\varphi = \varphi_2 - \varphi_1$$
+    /// $$\Delta\lambda = \lambda_2 - \lambda_1$$
+    ///
+    /// $$a = sin\left( \frac{\Delta\varphi}{2} \right)^2 + cos(\varphi_1) \cdot cos(\varphi_2) \cdot sin\left( \frac{\Delta\lambda}{2} \right)^2$$
+    ///
+    /// $$c = 2 \cdot atan2\left( \sqrt{a}, \sqrt{1 - a} \right)$$
+    ///
+    /// $$d = R \cdot c$$
+    ///
+    pub fn distance_to(&self, other: &Self) -> Length {
+        const R: f64 = 6371.0; // "average" radius of earth in meters.
+
+        let phi_1: f64 = self.latitude().as_float().to_radians();
+        let lambda_1: f64 = self.longitude().as_float().to_radians();
+        let phi_2: f64 = other.longitude().as_float().to_radians();
+        let lambda_2: f64 = other.longitude().as_float().to_radians();
+
+        let delta_phi: f64 = phi_2 - phi_1;
+        let delta_lambda: f64 = lambda_2 - lambda_1;
+
+        let a: f64 = (delta_phi / 2.0).sin().powi(2)
+            + phi_1.cos() * phi_2.cos() * (delta_lambda / 2.0).sin().powi(2);
+
+        let c: f64 = 2.0 * a.sqrt().atan2((1.0 - a).sqrt());
+
+        let d: f64 = R * c;
+
+        Length::new::<kilometer>(d)
+    }
+
+    ///
+    /// The bearing, theta ($\theta$), is the compass heading from the current location to the
+    /// provided second location.
+    ///
+    /// # Example
+    ///
+    /// TBD
+    ///
+    /// # The Math
+    ///
+    /// Given two latitude/longitude pairs $(\varphi_1,\lambda_1)$, $(\varphi_3,\lambda_2)$, first
+    /// calculate the difference between the longitude.
+    ///
+    /// $$\Delta\lambda = \lambda_2 - \lambda_1$$
+    ///
+    /// $$\theta = atan2\left( sin(\Delta\lambda) \cdot cos(\varphi_2), cos(\varphi_1) \cdot sin(\varphi_2) - sin(\varphi_1) \cdot cos(\varphi_2) \cdot cos(\Delta\lambda) \right)$$
+    ///
+    /// Because the `atan2` function returns a result between `-180°..180°`, you must convert the
+    /// result to a standard `0°..360°` compass bearing using this formula:
+    ///
+    /// $$\theta = (\theta + 360) \pmod{360}$$
+    ///
+    pub fn compass_bearing_to(&self, other: &Self) -> f64 {
+        let phi_1: f64 = self.latitude().as_float().to_radians();
+        let lambda_1: f64 = self.longitude().as_float().to_radians();
+        let phi_2: f64 = other.longitude().as_float().to_radians();
+        let lambda_2: f64 = other.longitude().as_float().to_radians();
+
+        let delta_lambda: f64 = lambda_2 - lambda_1;
+
+        let x = phi_1.cos() * phi_2.sin() - phi_1.sin() * phi_2.cos() * delta_lambda.cos();
+        let y = delta_lambda.sin() * phi_2.cos();
+
+        let theta = y.atan2(x);
+
+        (theta.to_degrees() + 360.0) % 360.0
     }
 }
 
